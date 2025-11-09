@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Stack & Balance Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --accent: #ffd166;
+    --bg1: #d1f0ff;
+    --bg2: #87ceeb;
+  }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(180deg, var(--bg1), var(--bg2));
+    color: #333;
+    min-height: 100vh;
+  }
+  header {
+    background: #2a2f38;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 2rem;
+    width: 100%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  header h1 {
+    font-family: 'Montserrat', Arial, sans-serif;
+    color: #ffcc00;
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  nav ul li:hover {
+    color: #ffd166;
+  }
+  .theme-btn {
+    background: var(--accent);
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .theme-btn:hover { opacity: 0.9; }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30px;
+  }
+  #scoreDisplay {
+    font-size: 1.2rem;
+    color: #444;
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+  canvas {
+    background: #87ceeb;
+    display: block;
+    margin: 0 auto;
+    border: 3px solid #333;
+    border-radius: 10px;
+  }
+  #gameOverOverlay {
+    display: none;
+    position: fixed;
+    left:50%; top:50%;
+    transform: translate(-50%,-50%);
+    background: rgba(34,43,62,0.88);
+    border-radius: 16px;
+    box-shadow: 0 4px 18px #3338;
+    padding: 36px 40px 32px 40px;
+    text-align: center;
+    z-index: 1000;
+  }
+  #gameOverOverlay h2 {
+    color: #ffd166;
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  #gameOverOverlay p {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 18px;
+  }
+  #restartButton {
+    background: linear-gradient(180deg,#ffd166,#ffb703);
+    color: #222;
+    font-size: 1rem;
+    border:none;
+    border-radius: 9px;
+    padding: 10px 30px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #restartButton:hover {
+    background: linear-gradient(180deg,#ffb703,#ffd166);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='build.html'">Construction Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Light</button>
+</header>
+
+<main>
+  <div id="scoreDisplay">Score: 0</div>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+</main>
+
+<div id="gameOverOverlay">
+  <h2>Game Over</h2>
+  <p id="finalScore"></p>
+  <button id="restartButton">Restart</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const overlay = document.getElementById('gameOverOverlay');
+const finalScore = document.getElementById('finalScore');
+const restartButton = document.getElementById('restartButton');
+const themeBtn = document.getElementById('themeBtn');
+
+let platform, blocks, fallingBlock, score, gameRunning;
+let keys = { left: false, right: false };
+
+initGame();
+
+function initGame() {
+  platform = { x: 150, y: 450, width: 100, height: 12 };
+  blocks = [];
+  fallingBlock = createBlock();
+  score = 0;
+  gameRunning = true;
+  overlay.style.display = 'none';
+  updateScoreDisplay();
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') keys.left = true;
+  if (e.key === 'ArrowRight') keys.right = true;
+});
+window.addEventListener('keyup', (e) => {
+  if (e.key === 'ArrowLeft') keys.left = false;
+  if (e.key === 'ArrowRight') keys.right = false;
+});
+
+themeBtn.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  themeBtn.textContent =
+    document.body.classList.contains("dark") ? "Theme: Dark" : "Theme: Light";
+});
+
+restartButton.addEventListener('click', () => {
+  initGame();
+  requestAnimationFrame(update);
+});
+
+function createBlock() {
+  return {
+    x: Math.random() * (canvas.width - 50),
+    y: 0,
+    width: 40,
+    height: 40,
+    dy: 2
+  };
+}
+
+function drawPlatform() {
+  ctx.fillStyle = "#654321";
+  ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+}
+function drawBlocks() {
+  ctx.fillStyle = "#ff6347";
+  blocks.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
+}
+function drawFallingBlock() {
+  ctx.fillStyle = "#ffcc00";
+  ctx.fillRect(fallingBlock.x, fallingBlock.y, fallingBlock.width, fallingBlock.height);
+}
+function updateScoreDisplay() {
+  scoreDisplay.textContent = `Score: ${score}`;
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Smooth platform movement
+  const speed = 5;
+  if (keys.left && platform.x > 0) platform.x -= speed;
+  if (keys.right && platform.x + platform.width < canvas.width) platform.x += speed;
+
+  drawPlatform();
+  drawBlocks();
+  drawFallingBlock();
+
+  // Gravity
+  fallingBlock.y += fallingBlock.dy;
+
+  // Determine closest landing surface directly under the falling block
+  let landingY = platform.y, landingX = platform.x, landingW = platform.width;
+  for (let b of blocks) {
+    let horizontalOverlap =
+      fallingBlock.x + fallingBlock.width > b.x &&
+      fallingBlock.x < b.x + b.width;
+    if (
+      horizontalOverlap &&
+      b.y >= fallingBlock.y + fallingBlock.dy && // must be below the block
+      b.y < landingY // closer than current landing surface
+    ) {
+      landingY = b.y;
+      landingX = b.x;
+      landingW = b.width;
+    }
+  }
+
+  // Check actual landing this frame
+  if (
+    fallingBlock.y + fallingBlock.height >= landingY &&
+    fallingBlock.x + fallingBlock.width > landingX &&
+    fallingBlock.x < landingX + landingW
+  ) {
+    fallingBlock.y = landingY - fallingBlock.height;
+    blocks.push({ ...fallingBlock });
+    fallingBlock = createBlock();
+    score++;
+    updateScoreDisplay();
+  }
+
+  // Missed block -> game over
+  if (fallingBlock.y > canvas.height) {
+    showGameOver();
+    gameRunning = false;
+    return;
+  }
+
+  if (gameRunning) requestAnimationFrame(update);
+}
+
+function showGameOver() {
+  finalScore.textContent = `Score: ${score}`;
+  overlay.style.display = 'block';
+}
+
+// Start loop
+requestAnimationFrame(update);
+</script>
+</body>
+</html>

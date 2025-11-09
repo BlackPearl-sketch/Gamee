@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Extreme Water Color Sort Game</title>
+<style>
+:root {
+  /* Dark theme vars */
+  --bg: #0f172a;
+  --text: #fff;
+  --accent: cyan;
+  --tube-bg: rgba(255,255,255,0.05);
+  --tube-border: #fff;
+  --button-bg: cyan;
+  --button-text: #0f172a;
+}
+/* Bright theme vars */
+body.bright {
+  --bg: #f5f5f5;
+  --text: #222;
+  --accent: #007acc;
+  --tube-bg: rgba(0,0,0,0.05);
+  --tube-border: #333;
+  --button-bg: #333;
+  --button-text: #fff;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text);
+  min-height: 100vh;
+  margin: 0;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* Header */
+header {
+  background: #2a2f38;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  max-width: 1000px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+header h1 {
+  font-family: 'Montserrat', sans-serif;
+  color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+nav ul {
+  display: flex;
+  list-style: none;
+  gap: 1.2rem;
+  margin: 0;
+  padding: 0;
+}
+nav ul li {
+  cursor: pointer;
+  font-weight: 600;
+}
+nav ul li:hover {
+  color: var(--accent);
+}
+.theme-btn {
+  background: var(--accent);
+  color: var(--button-text);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: bold;
+}
+.theme-btn:hover { opacity: 0.85; }
+
+/* Game styles */
+h2 {
+  text-shadow: 0 0 15px var(--accent);
+  margin-top: 20px;
+}
+#game {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 30px;
+  gap: 20px;
+  max-width: 1000px;
+}
+.tube {
+  width: 70px;
+  height: 260px;
+  border: 3px solid var(--tube-border);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  background: var(--tube-bg);
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(255,255,255,0.2);
+  transition: transform 0.2s, border-color 0.3s, background 0.3s;
+}
+.tube:hover { transform: scale(1.05); }
+.layer {
+  width: 100%;
+  height: 25%;
+  transition: height 0.4s ease;
+}
+.selected {
+  outline: 4px solid yellow;
+  transform: translateY(-10px) scale(1.08);
+  box-shadow: 0 0 25px yellow;
+}
+#controls {
+  margin-top: 25px;
+}
+button {
+  background: var(--button-bg);
+  color: var(--button-text);
+  padding: 10px 20px;
+  border: none;
+  font-size: 1rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 0 10px;
+  box-shadow: 0 0 15px var(--accent);
+  transition: background 0.3s, color 0.3s;
+}
+button:hover {
+  filter: brightness(1.1);
+}
+#message {
+  margin-top: 20px;
+  font-size: 1.3rem;
+  text-shadow: 0 0 10px lime;
+}
+</style>
+</head>
+<body class="dark">
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='brain.html'">Puzzle Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+</header>
+
+<h2>💧 Extreme Water Color Sort</h2>
+<div id="game"></div>
+
+<div id="controls">
+  <button id="reset">🔄 Restart</button>
+  <button id="addDifficulty">⚡ More Extreme</button>
+</div>
+<div id="message"></div>
+
+<script>
+const COLORS = [
+  "#ff595e","#ffca3a","#8ac926","#1982c4",
+  "#6a4c93","#ff7f50","#ffd700","#7fffd4",
+  "#ff1493","#00ff00","#00ced1","#ff4500",
+  "#9932cc","#adff2f","#ff69b4","#40e0d0"
+];
+let numColors = 6;
+let tubes = [];
+let selectedTube = null;
+
+// Theme button
+const themeBtn = document.getElementById("themeBtn");
+themeBtn.addEventListener("click", ()=>{
+  if(document.body.classList.contains("dark")){
+    document.body.classList.remove("dark");
+    document.body.classList.add("bright");
+    themeBtn.textContent = "Theme: Bright";
+  }else{
+    document.body.classList.remove("bright");
+    document.body.classList.add("dark");
+    themeBtn.textContent = "Theme: Dark";
+  }
+});
+
+function initGame() {
+  document.getElementById("message").textContent = '';
+  const game = document.getElementById("game");
+  game.innerHTML = '';
+  tubes = [];
+
+  let allLayers = [];
+  for (let c = 0; c < numColors; c++) {
+    for (let k = 0; k < 4; k++) {
+      allLayers.push(COLORS[c]);
+    }
+  }
+  shuffle(allLayers);
+
+  const numTubes = numColors + 2;
+  let index = 0;
+  for (let t = 0; t < numTubes; t++) {
+    let tubeColors = [];
+    if (t < numColors) {
+      tubeColors = allLayers.slice(index, index + 4);
+      index += 4;
+    }
+    tubes.push(tubeColors);
+  }
+  renderTubes();
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function renderTubes() {
+  const game = document.getElementById("game");
+  game.innerHTML = '';
+  tubes.forEach((tubeColors, idx) => {
+    const tubeDiv = document.createElement("div");
+    tubeDiv.className = "tube";
+    tubeDiv.dataset.index = idx;
+
+    tubeColors.forEach(color => {
+      const layer = document.createElement("div");
+      layer.className = "layer";
+      layer.style.background = color;
+      tubeDiv.appendChild(layer);
+    });
+    tubeDiv.addEventListener("click", () => tubeClick(idx, tubeDiv));
+    game.appendChild(tubeDiv);
+  });
+}
+
+function tubeClick(idx, tubeDiv) {
+  if (selectedTube === null) {
+    if (tubes[idx].length === 0) return;
+    selectedTube = idx;
+    tubeDiv.classList.add("selected");
+  } else {
+    if (selectedTube === idx) {
+      clearSelection();
+      return;
+    }
+    pourWater(selectedTube, idx);
+    clearSelection();
+  }
+}
+
+function clearSelection() {
+  selectedTube = null;
+  document.querySelectorAll(".tube").forEach(t => t.classList.remove("selected"));
+}
+
+async function pourWater(fromIdx, toIdx) {
+  let from = tubes[fromIdx];
+  let to = tubes[toIdx];
+  if (from.length === 0) return;
+  if (to.length >= 4) return;
+
+  const movingColor = from[from.length - 1];
+  if (to.length > 0 && to[to.length - 1] !== movingColor) return;
+
+  while (from.length > 0 && (to.length < 4) && from[from.length - 1] === movingColor) {
+    await animatePour(fromIdx, toIdx, movingColor);
+    to.push(from.pop());
+  }
+  renderTubes();
+  checkWin();
+}
+
+function animatePour(fromIdx, toIdx, color) {
+  return new Promise(resolve => {
+    const fromTube = document.querySelector(`.tube[data-index="${fromIdx}"]`);
+    const toTube = document.querySelector(`.tube[data-index="${toIdx}"]`);
+
+    // Animate removal from source
+    const fromLayer = fromTube.lastElementChild;
+    if (fromLayer) {
+      fromLayer.style.height = "0%";
+      setTimeout(() => { fromLayer.remove(); }, 400);
+    }
+
+    // Animate growth in destination
+    const newLayer = document.createElement("div");
+    newLayer.className = "layer";
+    newLayer.style.background = color;
+    newLayer.style.height = "0%";
+    toTube.appendChild(newLayer);
+    void newLayer.offsetHeight;
+    newLayer.style.height = "25%";
+
+    setTimeout(resolve, 450);
+  });
+}
+
+function checkWin() {
+  let complete = true;
+  for (let tube of tubes) {
+    if (tube.length === 0) continue;
+    if (tube.length !== 4) { complete = false; break; }
+    if (!tube.every(c => c === tube[0])) {
+      complete = false;
+      break;
+    }
+  }
+  if (complete) {
+    document.getElementById("message").textContent = "🎉 You Win the Extreme Mode!";
+  }
+}
+
+document.getElementById("reset").addEventListener("click", initGame);
+document.getElementById("addDifficulty").addEventListener("click", () => {
+  numColors = Math.min(COLORS.length, numColors + 1);
+  initGame();
+});
+
+initGame();
+</script>
+</body>
+</html>

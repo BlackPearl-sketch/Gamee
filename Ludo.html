@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smooth Ludo Game</title>
+<style>
+  :root {
+    --bg: #1b1f23;
+    --accent: #ffcc00;
+    --surface: #2a2f38;
+    --text: #ffffff;
+
+    --red: #e74c3c;
+    --blue: #3498db;
+    --green: #27ae60;
+    --yellow: #f1c40f;
+
+    /* nav defaults */
+    --nav-bg: var(--surface);
+    --nav-text: var(--text);
+    --primary: var(--accent);
+    --button-bg: var(--accent);
+    --button-text: var(--bg);
+  }
+
+  /* Alternate Themes */
+  .theme-dark {
+    --bg: #1b1f23;
+    --accent: #ffcc00;
+    --surface: #2a2f38;
+    --text: #ffffff;
+  }
+  .theme-bright {
+    --bg: #fafafa;
+    --accent: #007bff;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+  }
+  .theme-red {
+    --bg: #2e0606;
+    --accent: #ff4d4d;
+    --surface: #501616;
+    --text: #f9f9f9;
+  }
+
+  /* Body Styling */
+  body {
+    font-family: Arial, sans-serif;
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    display:flex; flex-direction:column; align-items:center;
+    transition:background 0.4s, color 0.4s;
+    min-height: 100vh;
+  }
+
+  /* Header styles */
+  header {
+    background: var(--nav-bg);
+    color: var(--nav-text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 1000px;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--primary);
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  nav ul li:hover { color: var(--primary); }
+  /* Theme Selector in Header */
+  .theme-toggle {
+    background: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { opacity: 0.9; }
+
+  /* Ludo Game Styles */
+  h2 { margin: 0.5rem 0; text-shadow: 0 0 8px var(--accent); }
+  #board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(15, 40px);
+    grid-template-rows: repeat(15, 40px);
+    border: 6px solid #444; border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    background: #fff;
+    margin-top: 1rem;
+  }
+  .cell { border: 1px solid #ccc; position: relative; }
+  .red-home { background: var(--red); opacity: 0.25; }
+  .blue-home { background: var(--blue); opacity: 0.25; }
+  .green-home { background: var(--green); opacity: 0.25; }
+  .yellow-home { background: var(--yellow); opacity: 0.25; }
+  .center { background: #fff; opacity: 0.4; }
+  .safe { background: #ffeaa7; }
+  .safe::after {
+    content: "★";
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px; color: #d35400;
+  }
+  .token {
+    width: 30px; height: 30px;
+    border-radius: 50%; border: 2px solid #000;
+    position: absolute; transition: all 0.25s ease;
+    box-shadow: 0 0 8px currentColor;
+    cursor: pointer;
+  }
+  .player-0 { background: var(--red); color: var(--red);}
+  .player-1 { background: var(--blue); color: var(--blue);}
+  .player-2 { background: var(--green); color: var(--green);}
+  .player-3 { background: var(--yellow); color: var(--yellow);}
+  #controls {
+    margin-top: 1rem; display:flex; flex-direction:column; align-items:center; gap:0.5rem;
+  }
+  select, button {
+    padding:0.5rem; font-size:1rem;
+    border-radius: 8px; border: 2px solid #999;
+    cursor: pointer;
+  }
+  #diceResult {
+    font-size: 2rem; font-weight: bold; height: 40px;
+  }
+</style>
+</head>
+<body class="theme-dark">
+  <!-- Header -->
+  <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='Multi.html'">Multiplayer Games</li>
+      </ul>
+    </nav>
+    <select class="theme-toggle" onchange="changeTheme(this.value)">
+      <option value="theme-dark">🌑 Dark</option>
+      <option value="theme-bright">🌞 Bright</option>
+      <option value="theme-red">🔴 Red</option>
+    </select>
+  </header>
+
+  <h2>Ludo Game</h2>
+  <div id="board"></div>
+  <div id="controls">
+    <label>Players:
+      <select id="playerCount">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4" selected>4</option>
+      </select>
+    </label>
+    <button id="startBtn">Start Game</button>
+    <div id="diceResult">🎲</div>
+    <button id="rollDiceBtn" disabled>Roll Dice</button>
+    <div id="messages"></div>
+  </div>
+
+<script>
+  function changeTheme(themeName) {
+    document.body.classList.remove('theme-dark', 'theme-bright', 'theme-red');
+    document.body.classList.add(themeName);
+  }
+
+  const board=document.getElementById('board');
+  const boardCells=[];
+  for(let r=0;r<15;r++){
+    const row=[];
+    for(let c=0;c<15;c++){
+      const cell=document.createElement('div');
+      cell.className='cell';
+      board.appendChild(cell);
+      row.push(cell);
+    }
+    boardCells.push(row);
+  }
+
+  // Mark homes, center, safe squares
+  for(let r=0;r<6;r++)for(let c=0;c<6;c++)boardCells[r][c].classList.add('red-home');
+  for(let r=0;r<6;r++)for(let c=9;c<15;c++)boardCells[r][c].classList.add('blue-home');
+  for(let r=9;r<15;r++)for(let c=0;c<6;c++)boardCells[r][c].classList.add('green-home');
+  for(let r=9;r<15;r++)for(let c=9;c<15;c++)boardCells[r][c].classList.add('yellow-home');
+  for(let r=6;r<9;r++)for(let c=6;c<9;c++)boardCells[r][c].classList.add('center');
+
+  [[2,6],[6,2],[8,12],[12,8],[6,12],[12,6],[8,2],[2,8]].forEach(([r,c])=> boardCells[r][c].classList.add('safe'));
+
+  const basePath=[
+    [6,0],[6,1],[6,2],[6,3],[6,4],[5,5],[4,5],[3,5],[2,5],[1,5],[0,6],[0,7],[0,8],[1,9],[2,9],[3,9],[4,9],[5,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],
+    [9,14],[9,13],[9,12],[9,11],[9,10],[10,9],[11,9],[12,9],[13,9],[14,8],[14,7],[14,6],[13,5],[12,5],[11,5],[10,5],[9,4],[9,3],[9,2],[9,1],[9,0],[8,0],[7,0],[6,0]
+  ];
+  const startOffsets=[0,13,26,39];
+  const homePaths=[
+    [[5,0],[5,1],[5,2],[5,3],[5,4],[5,5]],
+    [[0,9],[1,9],[2,9],[3,9],[4,9],[5,9]],
+    [[9,14],[9,13],[9,12],[9,11],[9,10],[9,9]],
+    [[14,5],[13,5],[12,5],[11,5],[10,5],[9,5]]
+  ];
+  const basePositions=[[2,2],[2,12],[12,12],[12,2]];
+  const playerColors=['player-0','player-1','player-2','player-3'];
+
+  let numPlayers=4, tokens=[], currentPlayer=0, diceValue=0, gameStarted=false;
+
+  function getTokenCoords(p,pos){
+    if(pos<0) return basePositions[p];
+    if(pos<52){
+      const idx=(startOffsets[p]+pos)%52;
+      return basePath[idx];
+    }
+    return homePaths[p][pos-52]||[7,7];
+  }
+  function renderTokens(){
+    document.querySelectorAll('.token').forEach(t=>t.remove());
+    for(let p=0;p<numPlayers;p++){
+      tokens[p].forEach((pos,i)=>{
+        const [r,c]=getTokenCoords(p,pos);
+        const token=document.createElement('div');
+        token.className=`token ${playerColors[p]}`;
+        token.style.top=r*40+5+'px';
+        token.style.left=c*40+5+'px';
+        token.onclick=()=>{if(p===currentPlayer && diceValue>0)moveToken(p,i)};
+        board.appendChild(token);
+      });
+    }
+  }
+  function rollDice(){return Math.floor(Math.random()*6)+1;}
+  function canMove(p,ti,val){
+    const pos=tokens[p][ti];
+    if(pos<0) return val===6;
+    return pos+val<=57;
+  }
+  function getMovable(p,val){
+    return tokens[p].map((pos,i)=>canMove(p,i,val)?i:-1).filter(i=>i>=0);
+  }
+  function animateMove(p,ti,steps){
+    let pos=tokens[p][ti];
+    let count=0;
+    function step(){
+      pos++; tokens[p][ti]=pos;
+      renderTokens();
+      count++;
+      if(count<steps) setTimeout(step, 200);
+      else finishMove();
+    }
+    step();
+  }
+  function moveToken(p,ti){
+    if(!canMove(p,ti,diceValue)) return;
+    if(tokens[p][ti]<0) { tokens[p][ti]=0; renderTokens(); finishMove(); return; }
+    animateMove(p,ti,diceValue);
+  }
+  function finishMove(){
+    if(tokens[currentPlayer].every(x=>x===57)){
+      msg(`🏆 Player ${currentPlayer+1} wins!`);
+      gameStarted=false; document.getElementById('rollDiceBtn').disabled=true;
+      return;
+    }
+    let roll=diceValue; diceValue=0;
+    if(roll!==6) currentPlayer=(currentPlayer+1)%numPlayers;
+    msg(`Player ${currentPlayer+1}'s turn`);
+    document.getElementById('rollDiceBtn').disabled=false;
+  }
+  function msg(t){document.getElementById('messages').textContent=t;}
+
+  document.getElementById('startBtn').onclick=()=>{
+    numPlayers=+document.getElementById('playerCount').value;
+    tokens=Array.from({length:numPlayers},()=>[-1,-1,-1,-1]);
+    currentPlayer=0; gameStarted=true; renderTokens();
+    msg(`Game started. Player 1's turn`);
+    document.getElementById('rollDiceBtn').disabled=false;
+  };
+  document.getElementById('rollDiceBtn').onclick=()=>{
+    if(!gameStarted) return;
+    diceValue=rollDice();
+    document.getElementById('diceResult').textContent=`🎲 ${diceValue}`;
+    const mv=getMovable(currentPlayer,diceValue);
+    if(!mv.length){
+      currentPlayer=(currentPlayer+1)%numPlayers;
+      msg(`No moves. Player ${currentPlayer+1}'s turn`);
+      return;
+    }
+    if(mv.length===1) moveToken(currentPlayer,mv[0]);
+    else msg(`Select a token to move`);
+  };
+</script>
+</body>
+</html>

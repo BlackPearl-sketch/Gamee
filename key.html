@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Free the Key – Multi-Level + Theme Toggle</title>
+<style>
+  :root {
+    --bg-dark: #212437;
+    --text-dark: #ececec;
+    --bg-bright: #f0f0f0;
+    --text-bright: #222;
+    --accent: #ffcc00;
+  }
+
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    background: var(--bg-dark);
+    color: var(--text-dark);
+    transition: background 0.25s, color 0.25s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  body.bright {
+    background: var(--bg-bright);
+    color: var(--text-bright);
+  }
+
+  /* HEADER */
+  header {
+    background: #2a2f38;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    display: flex;
+    list-style: none;
+    gap: 1.2rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  nav ul li:hover {
+    color: var(--accent);
+  }
+  .theme-btn {
+    background: var(--accent);
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .theme-btn:hover {
+    opacity: 0.85;
+  }
+
+  /* GAME AREA */
+  h2 { margin-top: 1rem; }
+  #controls {
+    margin: 12px 0;
+  }
+  #board {
+    position: relative;
+    width: 360px;
+    height: 360px;
+    background: #333;
+    border-radius: 8px;
+    touch-action: none;
+    box-shadow: 0 2px 32px #bbb;
+    transition: background-color 0.3s;
+  }
+  body.bright #board { background: #999; }
+
+  .cell {
+    position: absolute;
+    background: #ddd;
+    border-radius: 4px;
+    left: 0; top: 0;
+    border: 1.5px solid #fff7;
+    box-sizing: border-box;
+  }
+  body.bright .cell { background: #eaeaea; border-color: #ccc; }
+
+  .block {
+    position: absolute;
+    border-radius: 6px;
+    cursor: grab;
+    box-shadow: 0 1px 8px #2226;
+  }
+  .horizontal { background: #4cafef; }
+  .vertical   { background: #ffc107; }
+  .key        { background: #f44336 !important; border: 2px solid #fff; }
+  body.bright .horizontal { background: #2196f3; }
+  body.bright .vertical   { background: #ff9800; }
+  body.bright .key        { background: #e53935 !important; }
+
+  #message {
+    min-height: 32px;
+    margin: 8px;
+    font-size: 1.22rem;
+    font-weight: bold;
+  }
+  select, button {
+    font-size: 16px;
+    margin: 2px 7px;
+    padding: 6px 15px;
+    border-radius: 5px;
+    border: none;
+    background: #cfd8dc;
+    color: #212437;
+  }
+  button { background: #2196f3; color: #fff; }
+  button:hover { background: #1565c0; }
+</style>
+</head>
+<body class="dark">
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='brain.html'">Puzzle Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+</header>
+
+<h2>🔑 Free the Key</h2>
+<div id="controls">
+  Level:
+  <select id="level"></select>
+  <button id="reset">Restart</button>
+</div>
+<div id="board"></div>
+<div id="message"></div>
+
+<script>
+const COLS = 6, ROWS = 6, CELL_SIZE = 60;
+
+// LEVELS with fixed lengths
+const LEVELS = [
+  {
+    name: "Tutorial",
+    blocks: [
+      {id:"key", x:0, y:2, length:2, orient:"h", key:true},
+      {id:"b1", x:0, y:0, length:2, orient:"v"},
+      {id:"b2", x:2, y:1, length:2, orient:"v"},
+      {id:"b3", x:4, y:0, length:3, orient:"v"},
+      {id:"b4", x:1, y:4, length:2, orient:"h"}
+    ]
+  },
+  {
+    name: "Classic", // Fixed some brick lengths so puzzle is playable
+    blocks: [
+      {id:"key", x:0, y:3, length:2, orient:"h", key:true},
+      {id:"b1", x:3, y:0, length:3, orient:"v"},
+      {id:"b2", x:2, y:2, length:2, orient:"v"},
+      {id:"b3", x:5, y:1, length:3, orient:"v"},  // fixed from 4 to 3
+      {id:"b4", x:4, y:4, length:2, orient:"h"},
+      {id:"b5", x:0, y:5, length:3, orient:"h"}
+    ]
+  },
+  {
+    name: "Bottleneck",
+    blocks: [
+      {id:"key", x:1, y:2, length:2, orient:"h", key:true},
+      {id:"b1", x:1, y:0, length:2, orient:"v"},
+      {id:"b2", x:3, y:1, length:2, orient:"v"},
+      {id:"b3", x:0, y:4, length:2, orient:"v"},
+      {id:"b4", x:2, y:5, length:2, orient:"h"},
+      {id:"b5", x:5, y:0, length:2, orient:"v"},
+      {id:"b6", x:4, y:3, length:2, orient:"v"}
+    ]
+  },
+  {
+    name: "Expert", // Fixed problematic lengths
+    blocks: [
+      {id:"key", x:2, y:2, length:2, orient:"h", key:true},
+      {id:"b1", x:1, y:0, length:3, orient:"v"},
+      {id:"b2", x:0, y:2, length:2, orient:"h"},
+      {id:"b3", x:4, y:1, length:3, orient:"v"},  // fixed from 4 to 3
+      {id:"b4", x:5, y:3, length:2, orient:"v"},
+      {id:"b5", x:3, y:4, length:2, orient:"h"},
+      {id:"b6", x:1, y:5, length:2, orient:"h"}
+    ]
+  }
+];
+
+let blocks = [], blockElements = {}, selected=null, offset={x:0, y:0};
+const boardEl = document.getElementById("board");
+const messageEl = document.getElementById("message");
+const levelSelect = document.getElementById("level");
+const resetBtn = document.getElementById("reset");
+const themeBtn = document.getElementById("themeBtn");
+
+// Theme toggle button
+themeBtn.addEventListener('click', ()=>{
+  if(document.body.classList.contains('dark')){
+    document.body.classList.remove('dark');
+    document.body.classList.add('bright');
+    themeBtn.textContent = "Theme: Bright";
+  } else {
+    document.body.classList.remove('bright');
+    document.body.classList.add('dark');
+    themeBtn.textContent = "Theme: Dark";
+  }
+});
+
+// Populate levels
+LEVELS.forEach((lvl,i)=>{
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = `Level ${i+1}: ${lvl.name}`;
+  levelSelect.appendChild(opt);
+});
+
+function loadLevel(idx) {
+  blocks = LEVELS[idx].blocks.map(b=>({...b}));
+  drawBoard();
+  messageEl.textContent = '';
+}
+
+function drawBoard() {
+  boardEl.innerHTML = "";
+  blockElements = {};
+  // grid
+  for(let r=0;r<ROWS;r++) {
+    for(let c=0;c<COLS;c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = cell.style.height = (CELL_SIZE-4)+"px";
+      cell.style.left = (c*CELL_SIZE+2)+"px";
+      cell.style.top  = (r*CELL_SIZE+2)+"px";
+      boardEl.appendChild(cell);
+    }
+  }
+  // blocks
+  blocks.forEach(b=>{
+    const block = document.createElement("div");
+    block.classList.add("block");
+    if(b.orient==="h") {
+      block.classList.add("horizontal");
+      block.style.width = (b.length*CELL_SIZE-4)+"px";
+      block.style.height = (CELL_SIZE-4)+"px";
+    } else {
+      block.classList.add("vertical");
+      block.style.height = (b.length*CELL_SIZE-4)+"px";
+      block.style.width = (CELL_SIZE-4)+"px";
+    }
+    if(b.key) block.classList.add("key");
+    block.dataset.id = b.id;
+    block.addEventListener("mousedown", startDrag);
+    block.addEventListener("touchstart", startDrag, {passive:false});
+    boardEl.appendChild(block);
+    blockElements[b.id]=block;
+    updateBlockPosition(b);
+  });
+}
+
+function updateBlockPosition(b) {
+  const blockEl = blockElements[b.id];
+  blockEl.style.transform = `translate(${b.x*CELL_SIZE+2}px,${b.y*CELL_SIZE+2}px)`;
+}
+
+function startDrag(e) {
+  e.preventDefault();
+  const id = e.target.dataset.id;
+  selected = blocks.find(b=>b.id===id);
+  const rect = boardEl.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  offset.x = cx-rect.left-selected.x*CELL_SIZE-2;
+  offset.y = cy-rect.top-selected.y*CELL_SIZE-2;
+  document.addEventListener("mousemove", drag);
+  document.addEventListener("mouseup", endDrag);
+  document.addEventListener("touchmove", drag, {passive:false});
+  document.addEventListener("touchend", endDrag);
+}
+function drag(e) {
+  e.preventDefault();
+  if(!selected) return;
+  const rect = boardEl.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  let gridX = Math.round((cx-rect.left-offset.x)/CELL_SIZE);
+  let gridY = Math.round((cy-rect.top-offset.y)/CELL_SIZE);
+  if(selected.orient==="h") {
+    gridY=selected.y;
+    gridX=Math.max(0,Math.min(COLS-selected.length,gridX));
+    if(!collides(selected,gridX,gridY)) selected.x=gridX;
+  } else {
+    gridX=selected.x;
+    gridY=Math.max(0,Math.min(ROWS-selected.length,gridY));
+    if(!collides(selected,gridX,gridY)) selected.y=gridY;
+  }
+  updateBlockPosition(selected);
+  checkWin();
+}
+function endDrag() {
+  selected=null;
+  document.removeEventListener("mousemove",drag);
+  document.removeEventListener("mouseup",endDrag);
+  document.removeEventListener("touchmove",drag);
+  document.removeEventListener("touchend",endDrag);
+}
+function collides(block,newX,newY) {
+  for(let b of blocks) {
+    if(b.id===block.id) continue;
+    let cells=occupiedCells(b);
+    for(let cx=newX;cx<newX+(block.orient==='h'?block.length:1);cx++) {
+      for(let cy=newY;cy<newY+(block.orient==='v'?block.length:1);cy++) {
+        if(cells.some(cell=>cell.x===cx&&cell.y===cy)) return true;
+      }
+    }
+  }
+  return false;
+}
+function occupiedCells(b) {
+  let cells=[];
+  if(b.orient==="h")
+    for(let i=0;i<b.length;i++) cells.push({x:b.x+i,y:b.y});
+  else
+    for(let i=0;i<b.length;i++) cells.push({x:b.x,y:b.y+i});
+  return cells;
+}
+function checkWin() {
+  const keyBlock=blocks.find(b=>b.key);
+  if(keyBlock && (keyBlock.x+keyBlock.length===COLS))
+    messageEl.textContent="🎉 You freed the key!";
+  else
+    messageEl.textContent="";
+}
+
+levelSelect.addEventListener("change",()=>loadLevel(levelSelect.value));
+resetBtn.addEventListener("click",()=>loadLevel(levelSelect.value));
+
+loadLevel(0);
+</script>
+</body>
+</html>

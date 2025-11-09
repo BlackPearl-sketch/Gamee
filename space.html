@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Space Shooter</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    /* Header */
+    header {
+      background: #2a2f38;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem 2rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    header h1 {
+      font-family: 'Montserrat', sans-serif;
+      color: #ffcc00;
+      cursor: pointer;
+      margin: 0;
+    }
+    nav ul {
+      display: flex;
+      list-style: none;
+      gap: 1.2rem;
+      margin: 0;
+      padding: 0;
+    }
+    nav ul li {
+      cursor: pointer;
+      font-weight: 600;
+    }
+    nav ul li:hover {
+      color: #ffcc00;
+    }
+    /* Make space for fixed header */
+    #gameWrapper {
+      padding-top: 70px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li>Shooting Games</li>
+    </ul>
+  </nav>
+</header>
+
+<div id="gameWrapper">
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 70; // account for header height
+
+// GAME STATE
+let score = 0;
+let gameOver = false;
+
+// ASSET LOADING
+const playerImg = new Image();
+const enemyImg = new Image();
+const bulletImg = new Image();
+playerImg.src = "Himg.png";
+enemyImg.src = "Eimg.png";
+bulletImg.src = "Bullet.jpg";
+
+let assetsLoaded = 0;
+[playerImg, enemyImg, bulletImg].forEach(img => {
+  img.onload = () => {
+    assetsLoaded++;
+    if (assetsLoaded === 3) startGame();
+  };
+});
+
+// OBJECTS
+let stars = [];
+let player = {
+  x: canvas.width / 2 - 25,
+  y: canvas.height - 100,
+  width: 50,
+  height: 50,
+  speed: 6,
+  bullets: []
+};
+let enemies = [];
+let enemyBullets = [];
+
+// STARFIELD
+for (let i = 0; i < 100; i++) {
+  stars.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: Math.random() * 2,
+    speed: Math.random() * 2 + 0.5
+  });
+}
+
+function drawStars() {
+  ctx.fillStyle = "white";
+  stars.forEach(star => {
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    ctx.fill();
+    star.y += star.speed;
+    if (star.y > canvas.height) {
+      star.y = 0;
+      star.x = Math.random() * canvas.width;
+    }
+  });
+}
+
+function drawPlayer() {
+  ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+}
+
+function drawEnemies() {
+  enemies.forEach(enemy => {
+    ctx.drawImage(enemyImg, enemy.x, enemy.y, enemy.width, enemy.height);
+    enemy.y += enemy.speed;
+
+    if (Math.random() < 0.01) {
+      enemyBullets.push({
+        x: enemy.x + enemy.width / 2 - 5,
+        y: enemy.y + enemy.height,
+        width: 10,
+        height: 20,
+        speed: 5
+      });
+    }
+
+    if (enemy.y > canvas.height) {
+      enemy.y = -50;
+      enemy.x = Math.random() * (canvas.width - enemy.width);
+    }
+  });
+}
+
+function drawBullets() {
+  player.bullets.forEach(bullet => {
+    ctx.drawImage(bulletImg, bullet.x, bullet.y, bullet.width, bullet.height);
+    bullet.y -= bullet.speed;
+  });
+  enemyBullets.forEach(bullet => {
+    ctx.fillStyle = "red";
+    ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+    bullet.y += bullet.speed;
+  });
+}
+
+function drawScore() {
+  ctx.font = "20px Arial";
+  ctx.fillStyle = "white";
+  ctx.fillText("Score: " + score, 20, 30);
+}
+
+function detectCollisions() {
+  // Player bullets vs enemies
+  player.bullets.forEach((bullet, bIndex) => {
+    enemies.forEach((enemy, eIndex) => {
+      if (
+        bullet.x < enemy.x + enemy.width &&
+        bullet.x + bullet.width > enemy.x &&
+        bullet.y < enemy.y + enemy.height &&
+        bullet.height + bullet.y > enemy.y
+      ) {
+        score += 10;
+        enemies.splice(eIndex, 1);
+        player.bullets.splice(bIndex, 1);
+        spawnEnemy();
+      }
+    });
+  });
+
+  // Enemy bullets vs player
+  enemyBullets.forEach((bullet) => {
+    if (
+      bullet.x < player.x + player.width &&
+      bullet.x + bullet.width > player.x &&
+      bullet.y < player.y + player.height &&
+      bullet.height + bullet.y > player.y
+    ) {
+      gameOver = true;
+    }
+  });
+}
+
+function spawnEnemy() {
+  enemies.push({
+    x: Math.random() * (canvas.width - 50),
+    y: -50,
+    width: 50,
+    height: 50,
+    speed: 2
+  });
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawStars();
+  drawPlayer();
+  drawEnemies();
+  drawBullets();
+  drawScore();
+  detectCollisions();
+
+  if (!gameOver) {
+    requestAnimationFrame(gameLoop);
+  } else {
+    ctx.font = "50px Arial";
+    ctx.fillStyle = "red";
+    ctx.fillText("GAME OVER", canvas.width / 2 - 150, canvas.height / 2);
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "white";
+    ctx.fillText("Final Score: " + score, canvas.width / 2 - 100, canvas.height / 2 + 50);
+    ctx.fillText("Press R to Restart", canvas.width / 2 - 120, canvas.height / 2 + 100);
+  }
+}
+
+function startGame() {
+  score = 0;
+  gameOver = false;
+  player.bullets = [];
+  enemies = [];
+  enemyBullets = [];
+  for (let i = 0; i < 5; i++) spawnEnemy();
+  gameLoop();
+}
+
+// CONTROLS
+window.addEventListener("keydown", e => {
+  if (!gameOver) {
+    if (e.key === "ArrowLeft" && player.x > 0) player.x -= player.speed;
+    if (e.key === "ArrowRight" && player.x < canvas.width - player.width) player.x += player.speed;
+    if (e.key === " ") {
+      player.bullets.push({
+        x: player.x + player.width / 2 - 5,
+        y: player.y,
+        width: 10,
+        height: 20,
+        speed: 7
+      });
+    }
+  } else if (e.key.toLowerCase() === "r") {
+    startGame();
+  }
+});
+</script>
+
+</body>
+</html>

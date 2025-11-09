@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sudoku Dark/Light 3D</title>
+<style>
+  :root {
+    /* Dark */
+    --bg: #0f172a;
+    --text: #fff;
+    --accent: #ffcc00;
+    --grid-bg: #2a2f38;
+
+    /* Light */
+    --bg-light: #f4f4f4;
+    --text-light: #222;
+    --grid-bg-light: #fff;
+  }
+
+  body {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+  }
+  body.light {
+    background: var(--bg-light);
+    color: var(--text-light);
+  }
+
+  /* HEADER */
+  header {
+    background: #2a2f38;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 10;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--accent);
+    cursor: pointer;
+    margin: 0;
+    font-size: 1.4rem;
+  }
+  nav ul {
+    display: flex;
+    list-style: none;
+    gap: 1.2rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  nav ul li:hover { color: var(--accent); }
+  .theme-btn {
+    background: var(--accent);
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .theme-btn:hover { opacity: 0.85; }
+
+  h2 { margin-top: 1em; }
+  #sudoku {
+    display: grid;
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(9, 50px);
+    margin-top: 1em;
+    border: 4px solid #3c1361;
+    background: var(--grid-bg);
+    box-shadow: 0 0 20px #3c1361;
+  }
+  body.light #sudoku {
+    background: var(--grid-bg-light);
+    box-shadow: 0 0 15px #aaa;
+  }
+  .cell {
+    background: #2f343e;
+    border: 1px solid #111;
+    outline: none;
+    text-align: center;
+    font-size: 1.5em;
+    color: #fff;
+    box-shadow: inset 0 0 5px #000;
+    transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.2s;
+  }
+  .cell:hover {
+    box-shadow: 0 0 8px var(--accent), inset 0 0 5px #000;
+    transform: scale(1.05);
+  }
+  .cell:focus {
+    box-shadow: 0 0 10px var(--accent), inset 0 0 5px #000;
+    transform: scale(1.06);
+  }
+  /* 3x3 borders */
+  .cell:nth-child(3n) { border-right: 3px solid #3c1361; }
+  .cell:nth-child(n+19):nth-child(-n+27),
+  .cell:nth-child(n+46):nth-child(-n+54),
+  .cell:nth-child(n+73):nth-child(-n+81) {
+    border-bottom: 3px solid #3c1361;
+  }
+
+  /* Light cells */
+  body.light .cell {
+    background: #f9f9f9;
+    color: #000;
+    border-color: #bbb;
+  }
+  body.light .cell:hover {
+    box-shadow: 0 0 8px #3c1361, inset 0 0 5px #bbb;
+  }
+  body.light .cell:focus {
+    box-shadow: 0 0 10px #3c1361, inset 0 0 5px #bbb;
+  }
+
+  #warning {
+    color: #ff3333;
+    font-weight: bold;
+    margin: 12px 0 0 0;
+    min-height: 24px;
+    letter-spacing: 0.5px;
+    font-size: 1.1em;
+  }
+  body.light #warning { color: #c00; }
+</style>
+</head>
+<body class="dark">
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='brain.html'">Puzzle Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+</header>
+
+<h2>🧩 Sudoku 3D</h2>
+<div id="sudoku"></div>
+<button onclick="generateGrid()">🔁 New Puzzle</button>
+<div id="warning"></div>
+
+<script>
+const sudokuContainer = document.getElementById('sudoku');
+const themeBtn = document.getElementById('themeBtn');
+const warningDiv = document.getElementById('warning');
+
+let solution = Array.from({ length: 9 }, () => Array(9).fill(0));
+let puzzle = Array.from({ length: 9 }, () => Array(9).fill(0));
+
+// Theme toggle
+themeBtn.addEventListener('click', () => {
+  if(document.body.classList.contains('dark')){
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
+    themeBtn.textContent = "Theme: Bright";
+  } else {
+    document.body.classList.remove('light');
+    document.body.classList.add('dark');
+    themeBtn.textContent = "Theme: Dark";
+  }
+});
+
+function isSafe(grid, row, col, num) {
+  for (let x = 0; x < 9; x++) {
+    if (grid[row][x] === num || grid[x][col] === num) return false;
+  }
+  const startRow = row - row % 3, startCol = col - col % 3;
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      if (grid[startRow + r][startCol + c] === num) return false;
+    }
+  }
+  return true;
+}
+
+function solveSudoku(grid) {
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      if (grid[row][col] === 0) {
+        for (let num = 1; num <= 9; num++) {
+          if (isSafe(grid, row, col, num)) {
+            grid[row][col] = num;
+            if (solveSudoku(grid)) return true;
+            grid[row][col] = 0;
+          }
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function shuffle(arr) {
+  for (let i=arr.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function generatePuzzle() {
+  const grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+  const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+  for (let k=0; k<9; k+=3) {
+    for (let i=0; i<3; i++) {
+      for (let j=0; j<3; j++) {
+        let num;
+        do {
+          num = nums[Math.floor(Math.random()*9)];
+        } while (!isSafe(grid, k+i, k+j, num));
+        grid[k+i][k+j] = num;
+      }
+    }
+  }
+  solveSudoku(grid);
+  solution = grid.map(r => r.slice());
+  const puzzle = grid.map(r => r.slice());
+  let removals = 35;
+  while (removals > 0) {
+    const r = Math.floor(Math.random()*9);
+    const c = Math.floor(Math.random()*9);
+    if (puzzle[r][c] !== 0) {
+      puzzle[r][c] = 0;
+      removals--;
+    }
+  }
+  return puzzle;
+}
+
+function showWarning(msg) {
+  warningDiv.textContent = msg;
+}
+function hideWarning() {
+  warningDiv.textContent = "";
+}
+
+function generateGrid() {
+  sudokuContainer.innerHTML = '';
+  hideWarning();
+  puzzle = generatePuzzle();
+  for (let row=0; row<9; row++) {
+    for (let col=0; col<9; col++) {
+      const cell = document.createElement("input");
+      cell.type = "text";
+      cell.maxLength = "1";
+      cell.classList.add("cell");
+      let val = puzzle[row][col];
+      if (val !== 0) {
+        cell.value = val;
+        cell.readOnly = true;
+        cell.style.color = '#ffcc00';
+      }
+      cell.dataset.row = row;
+      cell.dataset.col = col;
+      cell.addEventListener('input', () => {
+        cell.value = cell.value.replace(/[^1-9]/g, '');
+        hideWarning();
+        if (cell.value === "") return;
+
+        const grid = puzzle.map(a => a.slice());
+        const inputs = sudokuContainer.querySelectorAll('.cell');
+        let idx=0;
+        for (let r=0; r<9; r++) {
+          for (let c=0; c<9; c++) {
+            const inputCell = inputs[idx++];
+            if (!inputCell.readOnly && inputCell.value !== "") {
+              grid[r][c] = parseInt(inputCell.value, 10);
+            }
+          }
+        }
+        const r = +cell.dataset.row, c = +cell.dataset.col;
+        const value = parseInt(cell.value, 10);
+        grid[r][c] = 0;
+        if (!isSafe(grid, r, c, value)) {
+          showWarning(`"${value}" can't go at row ${r+1}, col ${c+1}`);
+          cell.style.background = "#86223f";
+          cell.style.color = "#fff";
+        } else {
+          hideWarning();
+          cell.style.background = "";
+          cell.style.color = "";
+        }
+      });
+      cell.addEventListener('blur', () => {
+        cell.style.background = "";
+        cell.style.color = "";
+      });
+      sudokuContainer.appendChild(cell);
+    }
+  }
+}
+
+window.onload = generateGrid;
+</script>
+</body>
+</html>

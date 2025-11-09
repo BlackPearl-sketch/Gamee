@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tic Tac Toe – Smooth Interface with Themes + AI & Undo/Redo</title>
+<style>
+/* === Your same styles kept === */
+:root {
+  --bg: #2a2f38;
+  --board: #444b5a;
+  --accent: #d4af37;
+  --cell-bg: #51576b;
+  --x-color: #4cd137;
+  --o-color: #ff7675;
+  --text: #fff;
+
+  --nav-bg: var(--board);
+  --nav-text: var(--text);
+  --primary: var(--accent);
+  --button-bg: var(--accent);
+  --button-text: var(--text);
+}
+.theme-bright {
+  --bg: #f0e7d8;
+  --board: #e5c07b;
+  --accent: #61afef;
+  --cell-bg: #fff3d4;
+  --x-color: #0984e3;
+  --o-color: #d63031;
+  --text: #333;
+}
+.theme-red {
+  --bg: #3c1e1e;
+  --board: #a23e3e;
+  --accent: #ff6f61;
+  --cell-bg: #5c2c2c;
+  --x-color: #ffeaa7;
+  --o-color: #fab1a0;
+  --text: #f9f9f9;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: sans-serif;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100vh;
+  transition: background 0.4s, color 0.4s;
+}
+header {
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  width: 100%;
+  max-width: 1000px;
+}
+.theme-btn, .ctrl-btn {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none; border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 4px;
+}
+.theme-btn:hover, .ctrl-btn:hover { opacity: 0.85; }
+
+#gameBoard {
+  display: grid;
+  grid-template-columns: repeat(3, 120px);
+  grid-template-rows: repeat(3, 120px);
+  gap: 8px;
+  background: var(--board);
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.cell {
+  background: var(--cell-bg);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3rem; font-weight: bold;
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
+  transition: background 0.3s, transform 0.2s;
+}
+.cell:hover { transform: scale(1.05); }
+.winner { animation: winpulse 1s infinite alternate; }
+@keyframes winpulse {
+  from { background-color: var(--accent); }
+  to { background-color: var(--cell-bg); }
+}
+#status { margin-top: 1rem; font-size: 1.3rem; font-weight: bold; }
+</style>
+</head>
+<body class="theme-dark">
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='Multi.html'">Multiplayer Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+</header>
+
+<h2>⭕ Tic Tac Toe ❌</h2>
+<div id="gameBoard"></div>
+<div id="status">Player X's turn</div>
+<div style="margin-top:10px;">
+  <button class="ctrl-btn" id="modeBtn">🧍 2-Player Mode</button>
+  <button class="ctrl-btn" id="undoBtn" disabled>↩️ Undo</button>
+  <button class="ctrl-btn" id="redoBtn" disabled>↪️ Redo</button>
+  <button class="ctrl-btn" id="resetBtn">Reset Game</button>
+</div>
+
+<script>
+const boardEl = document.getElementById('gameBoard');
+const statusEl = document.getElementById('status');
+const resetBtn = document.getElementById('resetBtn');
+const modeBtn = document.getElementById('modeBtn');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const themeBtn = document.getElementById('themeBtn');
+const themes = ['theme-dark','theme-bright','theme-red'];
+let themeIndex = 0;
+
+let board = Array(9).fill('');
+let currentPlayer = 'X';
+let gameActive = true;
+let vsComputer = false;
+
+// Undo/Redo stacks
+const history = [];
+const future = [];
+
+// Create board
+for (let i=0;i<9;i++){
+  const cell=document.createElement('div');
+  cell.classList.add('cell');
+  cell.dataset.index=i;
+  cell.addEventListener('click', onCellClick);
+  boardEl.appendChild(cell);
+}
+
+function onCellClick(e){
+  const idx = e.target.dataset.index;
+  if (!gameActive || board[idx] !== '') return;
+  makeMove(idx);
+  if (vsComputer && gameActive && currentPlayer==='O'){
+    setTimeout(aiMove, 600);
+  }
+}
+
+function makeMove(idx){
+  board[idx]=currentPlayer;
+  const cell=document.querySelector(`.cell[data-index="${idx}"]`);
+  cell.textContent=currentPlayer;
+  cell.style.color = currentPlayer==='X' ?
+    getComputedStyle(document.body).getPropertyValue('--x-color') :
+    getComputedStyle(document.body).getPropertyValue('--o-color');
+  history.push({board:[...board], currentPlayer});
+  undoBtn.disabled=false;
+  future.length=0; redoBtn.disabled=true;
+
+  if (checkWin()){
+    statusEl.textContent=`🎉 Player ${currentPlayer} wins!`;
+    gameActive=false; return;
+  }
+  if (board.every(c=>c!=='')){
+    statusEl.textContent="It's a draw!";
+    gameActive=false; return;
+  }
+  currentPlayer=currentPlayer==='X'?'O':'X';
+  statusEl.textContent=`Player ${currentPlayer}'s turn`;
+}
+
+function aiMove(){
+  const empty = board.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+  if (empty.length===0) return;
+  // Simple AI: pick winning move, else block, else random
+  let move = findBestMove('O') ?? findBestMove('X') ?? empty[Math.floor(Math.random()*empty.length)];
+  makeMove(move);
+}
+
+function findBestMove(symbol){
+  const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,b,c] of wins){
+    const line=[board[a],board[b],board[c]];
+    if (line.filter(v=>v===symbol).length===2 && line.includes('')) {
+      return [a,b,c][line.indexOf('')];
+    }
+  }
+  return null;
+}
+
+function checkWin(){
+  const wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a,b,c] of wins){
+    if (board[a] && board[a]===board[b] && board[a]===board[c]){
+      [a,b,c].forEach(i=>document.querySelector(`.cell[data-index="${i}"]`).classList.add('winner'));
+      return true;
+    }
+  }
+  return false;
+}
+
+function undo(){
+  if (history.length<=1) return;
+  future.push({board:[...board], currentPlayer});
+  const prev = history.pop();
+  board=[...prev.board];
+  currentPlayer=prev.currentPlayer;
+  updateBoard();
+  redoBtn.disabled=false;
+  if (history.length<=1) undoBtn.disabled=true;
+}
+function redo(){
+  if (future.length===0) return;
+  const next=future.pop();
+  history.push({board:[...board], currentPlayer});
+  board=[...next.board];
+  currentPlayer=next.currentPlayer;
+  updateBoard();
+  if (future.length===0) redoBtn.disabled=true;
+  undoBtn.disabled=false;
+}
+function updateBoard(){
+  document.querySelectorAll('.cell').forEach((c,i)=>{
+    c.textContent=board[i];
+    c.classList.remove('winner');
+  });
+  statusEl.textContent = gameActive ? `Player ${currentPlayer}'s turn` : statusEl.textContent;
+}
+
+resetBtn.addEventListener('click', ()=>{
+  board.fill('');
+  document.querySelectorAll('.cell').forEach(c=>{c.textContent='';c.classList.remove('winner');});
+  currentPlayer='X'; gameActive=true;
+  statusEl.textContent=`Player ${currentPlayer}'s turn`;
+  history.length=0; future.length=0;
+  undoBtn.disabled=true; redoBtn.disabled=true;
+});
+
+modeBtn.addEventListener('click', ()=>{
+  vsComputer=!vsComputer;
+  modeBtn.textContent = vsComputer ? "🤖 Vs Computer" : "🧍 2-Player Mode";
+  resetBtn.click();
+});
+
+undoBtn.addEventListener('click', undo);
+redoBtn.addEventListener('click', redo);
+
+// Theme toggle
+themeBtn.addEventListener('click', ()=>{
+  themeIndex=(themeIndex+1)%themes.length;
+  document.body.className=themes[themeIndex];
+  const name=themes[themeIndex].replace('theme-','');
+  themeBtn.textContent=`Theme: ${name.charAt(0).toUpperCase()+name.slice(1)}`;
+});
+</script>
+</body>
+</html>

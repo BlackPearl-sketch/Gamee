@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Road Builder</title>
+<style>
+  :root {
+    --accent: #ffd166;
+    --bg1: #0f172a;
+    --bg2: #0b2545;
+    --card: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+  }
+  body.dark {
+    --accent: #ffd166;
+    --bg1: #0f172a;
+    --bg2: #0b2545;
+    --card: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+    color: #e6eef8;
+    background: radial-gradient(1200px 600px at 10% 20%, rgba(255,146,66,0.06), transparent),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+    margin: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+  body.bright {
+    --accent: #ffbf47;
+    --bg1: #f0f4f8;
+    --bg2: #d9e2ec;
+    --card: rgba(0,0,0,0.1);
+    --glass: rgba(0,0,0,0.05);
+    color: #222222;
+    background: radial-gradient(1200px 600px at 10% 20%, rgba(255, 191, 71, 0.2), transparent),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+    margin: 0;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    background: #2a2f38;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    z-index: 10;
+    padding-left: 25%;
+    padding-right: 25%;
+  }
+  body.bright header {
+    background: #ffeb99;
+    color: #333333;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: #ffcc00;
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+    color: inherit;
+  }
+  nav ul li:hover {
+    color: #ffcc00;
+  }
+  body.bright nav ul li:hover {
+    color: #cc9a00;
+  }
+
+  /* Theme Button */
+  .theme-btn {
+    background: var(--accent);
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease;
+  }
+  .theme-btn:hover {
+    opacity: 0.9;
+  }
+
+  /* Restart Button */
+  #restartBtn {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+    z-index: 10;
+  }
+
+  /* Canvas */
+  canvas#game {
+    display: block;
+    background: transparent;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 50px;
+    opacity: 0.7;
+    filter: drop-shadow(0 2px 1px rgba(0,0,0,0.1));
+    animation: cloudMove linear infinite;
+  }
+  .cloud:before, .cloud:after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 50px;
+  }
+  .cloud:before {
+    width: 60px; height: 60px;
+    top: -30px; left: 10px;
+  }
+  .cloud:after {
+    width: 40px; height: 40px;
+    top: -15px; right: 10px;
+  }
+  @keyframes cloudMove {
+    from { transform: translateX(100vw); }
+    to { transform: translateX(-150px); }
+  }
+  .cloud1 { width: 120px; height: 60px; top: 60px; animation-duration: 60s; }
+  .cloud2 { width: 100px; height: 50px; top: 120px; animation-duration: 80s; animation-delay: 20s; }
+  .cloud3 { width: 140px; height: 70px; top: 200px; animation-duration: 70s; animation-delay: 10s; }
+
+  /* Level text */
+  #levelText {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 4px rgba(0,0,0,0.7);
+    z-index: 10;
+    pointer-events: none;
+  }
+  body.bright #levelText {
+    color: #333;
+    text-shadow: 0 0 4px rgba(255,255,255,0.7);
+  }
+</style>
+</head>
+<body class="dark">
+  <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='build.html'">Construction Games</li>
+      </ul>
+    </nav>
+    <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+  </header>
+
+  <div id="levelText">Level 1</div>
+  <canvas id="game"></canvas>
+  <button id="restartBtn">Restart</button>
+
+  <!-- Clouds -->
+  <div class="cloud cloud1"></div>
+  <div class="cloud cloud2"></div>
+  <div class="cloud cloud3"></div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const themeBtn = document.getElementById("themeBtn");
+  const levelText = document.getElementById("levelText");
+
+  let width, height;
+  let drawing = false;
+  let roadPoints = [];
+  let car, goal, obstacles;
+  let gameOver = false, win = false;
+  let currentLevel = 1, maxLevel = 5;
+
+  function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function initGame(level = 1) {
+    roadPoints = [];
+    car = { x: 50, y: height / 2, size: 12, index: 0, speed: 2 + 0.4 * (level - 1) };
+    goal = {
+      x: width - 70 - Math.random()*100,
+      y: height / 2 + (Math.random() - 0.5) * (height / 3),
+      size: 20
+    };
+    gameOver = false;
+    win = false;
+    currentLevel = level;
+    levelText.textContent = `Level ${currentLevel}`;
+    obstacles = [];
+    const obstacleCount = Math.min(level + 2, 8);
+    for (let i = 0; i < obstacleCount; i++) {
+      obstacles.push({
+        x: 150 + Math.random() * (width - 300),
+        y: 100 + Math.random() * (height - 200),
+        size: 15 + Math.random() * 15
+      });
+    }
+  }
+
+  function drawBackground() {
+    let bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    if(document.body.classList.contains("bright")) {
+      bgGradient.addColorStop(0, "#b3ffab");
+      bgGradient.addColorStop(1, "#12fff7");
+    } else {
+      bgGradient.addColorStop(0, "#0b2545");
+      bgGradient.addColorStop(1, "#0f172a");
+    }
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  function drawRoad() {
+    if (roadPoints.length < 2) return;
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 12;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(roadPoints[0].x, roadPoints[0].y);
+    for (let i = 1; i < roadPoints.length - 2; i++) {
+      let cpx = (roadPoints[i].x + roadPoints[i+1].x) / 2;
+      let cpy = (roadPoints[i].y + roadPoints[i+1].y) / 2;
+      ctx.quadraticCurveTo(roadPoints[i].x, roadPoints[i].y, cpx, cpy);
+    }
+    ctx.quadraticCurveTo(
+      roadPoints[roadPoints.length - 2].x,
+      roadPoints[roadPoints.length - 2].y,
+      roadPoints[roadPoints.length - 1].x,
+      roadPoints[roadPoints.length - 1].y
+    );
+    ctx.stroke();
+  }
+
+  function drawCar() {
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.arc(car.x, car.y, car.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawGoal() {
+    ctx.fillStyle = "gold";
+    ctx.beginPath();
+    ctx.arc(goal.x, goal.y, goal.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawObstacles() {
+    ctx.fillStyle = "darkred";
+    obstacles.forEach(o => {
+      ctx.fillRect(o.x - o.size/2, o.y - o.size/2, o.size, o.size);
+    });
+  }
+
+  function checkCollision() {
+    return obstacles.some(o => {
+      const closestX = Math.max(o.x - o.size/2, Math.min(car.x, o.x + o.size/2));
+      const closestY = Math.max(o.y - o.size/2, Math.min(car.y, o.y + o.size/2));
+      const dx = car.x - closestX;
+      const dy = car.y - closestY;
+      return (dx*dx + dy*dy) < (car.size * car.size);
+    });
+  }
+
+  function updateCar() {
+    if (roadPoints.length < 2 || gameOver || win) return;
+    if (car.index < roadPoints.length - 1) {
+      let next = roadPoints[car.index + 1];
+      let dx = next.x - car.x;
+      let dy = next.y - car.y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < car.speed) {
+        car.x = next.x;
+        car.y = next.y;
+        car.index++;
+      } else {
+        car.x += (dx / dist) * car.speed;
+        car.y += (dy / dist) * car.speed;
+      }
+      if (checkCollision()) { gameOver = true; return; }
+      if (Math.hypot(car.x - goal.x, car.y - goal.y) < car.size + goal.size) win = true;
+    } else {
+      gameOver = true;
+    }
+  }
+
+  function drawText() {
+    ctx.fillStyle = document.body.classList.contains("bright") ? "black" : "white";
+    ctx.font = "32px Arial";
+    ctx.textAlign = "center";
+    if (win) ctx.fillText("You Win!", width/2, 60);
+    else if (gameOver) ctx.fillText("Game Over!", width/2, 60);
+  }
+
+  // Input
+  canvas.addEventListener("mousedown", () => {
+    if (gameOver || win) return;
+    drawing = true;
+    roadPoints = [{ x: car.x, y: car.y }];
+  });
+  canvas.addEventListener("mousemove", (e) => {
+    if (!drawing) return;
+    roadPoints.push({ x: e.clientX, y: e.clientY });
+  });
+  canvas.addEventListener("mouseup", () => { drawing = false; });
+
+  canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (gameOver || win) return;
+    drawing = true;
+    roadPoints = [{ x: car.x, y: car.y }];
+  });
+  canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    if (!drawing) return;
+    let t = e.touches[0];
+    roadPoints.push({ x: t.clientX, y: t.clientY });
+  });
+  canvas.addEventListener("touchend", () => { drawing = false; });
+
+  document.getElementById("restartBtn").addEventListener("click", () => initGame(currentLevel));
+
+  themeBtn.addEventListener("click", () => {
+    if (document.body.classList.contains("dark")) {
+      document.body.classList.remove("dark");
+      document.body.classList.add("bright");
+      themeBtn.textContent = "Theme: Bright";
+    } else {
+      document.body.classList.remove("bright");
+      document.body.classList.add("dark");
+      themeBtn.textContent = "Theme: Dark";
+    }
+  });
+
+  function loop() {
+    ctx.clearRect(0, 0, width, height);
+    drawBackground();
+    drawRoad();
+    drawGoal();
+    drawObstacles();
+    updateCar();
+    drawCar();
+    drawText();
+    requestAnimationFrame(loop);
+  }
+
+  function tryNextLevel() {
+    if (win) {
+      if (currentLevel >= maxLevel) { alert("All levels complete!"); return; }
+      if (confirm(`Level ${currentLevel} complete! Proceed to Level ${currentLevel+1}?`)) {
+        initGame(currentLevel + 1);
+      }
+    }
+  }
+  function checkWinStatus() {
+    if (win) { tryNextLevel(); win = false; }
+    requestAnimationFrame(checkWinStatus);
+  }
+
+  initGame();
+  loop();
+  checkWinStatus();
+})();
+</script>
+</body>
+</html>

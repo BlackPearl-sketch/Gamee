@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameHub - Shooting Games</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans&display=swap" rel="stylesheet">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+* {margin: 0; padding: 0; box-sizing: border-box;}
+
+:root {
+  --bg: #f0f0f0;
+  --text: #222;
+  --primary: #f44336;
+  --secondary: #ff7961;
+  --card-bg: #fff;
+  --nav-bg: #fff;
+  --nav-text: #222;
+  --button-bg: var(--primary);
+  --button-text: #fff;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+  background: url("gg.jpg") center center fixed;
+  background-size: cover;
+}
+
+/* Dark theme */
+.dark-theme {
+  --bg: #121212;
+  --text: #e0e0e0;
+  --primary: #bb86fc;
+  --secondary: #3700b3;
+  --card-bg: #1e1e1e;
+  --nav-bg: #1e1e1e;
+  --nav-text: #e0e0e0;
+}
+
+/* Header */
+header {
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+header h1 {
+  font-family: 'Montserrat', sans-serif;
+  color: var(--primary);
+  cursor: pointer;
+}
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+nav ul li {
+  cursor: pointer;
+  font-weight: 600;
+}
+nav ul li:hover {color: var(--primary);}
+.theme-toggle {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Main */
+main {
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem;
+}
+
+section.intro {
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+section h2 {
+  font-family: 'Montserrat', sans-serif;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+/* Game catalog & cards */
+.game-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 1.5rem;
+}
+.game-card {
+  background: var(--card-bg);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+.game-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.game-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+.game-info {
+  padding: 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.game-info h3 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+.game-info p {
+  font-size: 0.85rem;
+  flex-grow: 1;
+  margin-bottom: 1rem;
+}
+.btn-play {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: bold;
+  align-self: flex-start;
+}
+.btn-play:hover {
+  background: var(--secondary);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li>Shooting Games</li>
+    </ul>
+  </nav>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light theme">
+    <i class="fas fa-moon"></i>
+  </button>
+</header>
+
+<main>
+  <section class="intro">
+    <h2>Shooting Games - Test Your Aim</h2>
+    <p>Challenge your reflexes and precision! Play these exciting shooting games and see how high you can score.</p>
+  </section>
+
+  <section id="catalog">
+    <div class="game-catalog" id="shootingGamesCatalog">
+      <!-- Cards injected by JS -->
+    </div>
+  </section>
+</main>
+
+<script>
+// Shooting games list
+const shootingGames = [
+  {
+    title: "Space Shoot",
+    desc: "Blast through enemy ships and asteroids in this epic space shooter.",
+    image: "spaceimg.png",
+    url: "space.html"
+  },
+  {
+    title: "Balloon Shoot",
+    desc: "Pop colorful balloons before they float away!",
+    image: "BSimg.png",
+    url: "Balloon.html"
+  },
+  {
+    title: "Basketball",
+    desc: "Drag and shoot the ball into the basket with precision.",
+    image: "BBimg.png",
+    url: "BBoll.html"
+  },
+  {
+    title: "Duck Shoot",
+    desc: "Take aim and shoot ducks before they fly away!",
+    image: "Dsimg.png",
+    url: "Dshoot.html"
+  },
+  {
+    title: "Bow and Arrow",
+    desc: "Aim carefully and hit the targets with your bow.",
+    image: "BAimg.png",
+    url: "Bow&arrow.html"
+  }
+];
+
+function renderShootingGames() {
+  const container = document.getElementById('shootingGamesCatalog');
+  container.innerHTML = '';
+  shootingGames.forEach(game => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <img src="${game.image}" alt="${game.title}">
+      <div class="game-info">
+        <h3>${game.title}</h3>
+        <p>${game.desc}</p>
+        <button class="btn-play" onclick="window.open('${game.url}', '_blank')">Play Now</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Theme toggle functionality
+const themeToggleBtn = document.getElementById('themeToggle');
+themeToggleBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark-theme');
+  themeToggleBtn.innerHTML = document.body.classList.contains('dark-theme')
+    ? '<i class="fas fa-sun"></i>'
+    : '<i class="fas fa-moon"></i>';
+});
+
+// Initial render
+renderShootingGames();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SOS Game – 2 Player / vs Computer</title>
+<style>
+/* Same theme and layout styles */
+:root {
+  --bg: #2a2f38; --board: #444b5a; --accent: #d4af37;
+  --cell-bg: #51576b; --p1-color: #4cd137; --p2-color: #ff7675; --text: #fff;
+}
+.theme-bright {
+  --bg: #f0e7d8; --board: #e5c07b; --accent: #61afef;
+  --cell-bg: #fff3d4; --p1-color: #0984e3; --p2-color: #d63031; --text: #333;
+}
+.theme-red {
+  --bg: #3c1e1e; --board: #a23e3e; --accent: #ff6f61;
+  --cell-bg: #5c2c2c; --p1-color: #ffeaa7; --p2-color: #fab1a0; --text: #f9f9f9;
+}
+body {
+  background: var(--bg); color: var(--text); font-family: sans-serif;
+  display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+  transition: background 0.4s, color 0.4s;
+}
+header { background: var(--board); color: var(--text); display: flex;
+  justify-content: space-between; align-items: center; padding: 1rem 2rem;
+  width: 100%; max-width: 1000px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+h1 { color: var(--accent); cursor: pointer; }
+nav ul { list-style: none; display: flex; gap: 1.5rem; margin: 0; padding: 0; }
+nav li { cursor: pointer; font-weight: 600; }
+nav li:hover { color: var(--accent); }
+.theme-btn, #modeToggle, #undoBtn, #redoBtn, #resetBtn {
+  background: var(--accent); color: var(--text);
+  border: none; border-radius: 6px; padding: 0.4rem 0.8rem;
+  font-weight: bold; cursor: pointer; margin: 0.3rem;
+}
+#gameBoard {
+  display: grid; gap: 6px; background: var(--board); padding: 8px;
+  border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); margin-bottom: 0.5rem;
+}
+.cell {
+  background: var(--cell-bg); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: bold; cursor: pointer;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.4); transition: transform 0.2s;
+}
+.cell:hover { transform: scale(1.05); }
+.winnerLine { animation: blink 0.6s alternate infinite; }
+@keyframes blink { from { background-color: var(--accent);} to { background-color: var(--cell-bg);} }
+</style>
+</head>
+<body class="theme-dark">
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='Multi.html'">Multiplayer Games</li>
+    </ul>
+  </nav>
+  <button class="theme-btn" id="themeBtn">Theme: Dark</button>
+</header>
+
+<h2>🆂🅾🆂 Game</h2>
+
+<label>Board Size:
+  <select id="boardSize"></select>
+</label>
+
+<div>
+  <button id="modeToggle">Mode: 2 Player</button>
+  <button id="undoBtn">Undo</button>
+  <button id="redoBtn">Redo</button>
+</div>
+
+<div id="gameBoard"></div>
+<div id="status">Player 1's turn</div>
+<div id="scores">P1: 0 | P2: 0</div>
+
+<div id="letterSelect">
+  Choose Letter:
+  <button data-letter="S">S</button>
+  <button data-letter="O">O</button>
+</div>
+
+<button id="resetBtn">Reset Game</button>
+
+<script>
+const boardEl = document.getElementById('gameBoard');
+const statusEl = document.getElementById('status');
+const scoresEl = document.getElementById('scores');
+const resetBtn = document.getElementById('resetBtn');
+const themeBtn = document.getElementById('themeBtn');
+const modeToggle = document.getElementById('modeToggle');
+const undoBtn = document.getElementById('undoBtn');
+const redoBtn = document.getElementById('redoBtn');
+const letterButtons = document.querySelectorAll('#letterSelect button');
+const boardSizeSelect = document.getElementById('boardSize');
+
+const themes = ['theme-dark','theme-bright','theme-red'];
+let themeIndex = 0;
+
+let size = 5;
+let board = [];
+let currentPlayer = 1;
+let scores = [0,0];
+let selectedLetter = 'S';
+let gameActive = true;
+let vsComputer = false;
+
+let moveHistory = [];
+let redoStack = [];
+
+// Populate board size options
+for(let i=3;i<=10;i++){
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = `${i} x ${i}`;
+  boardSizeSelect.appendChild(opt);
+}
+boardSizeSelect.value = size;
+
+function buildBoard() {
+  board = Array(size*size).fill('');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${size}, 80px)`;
+  boardEl.style.gridTemplateRows = `repeat(${size}, 80px)`;
+  for (let i=0;i<size*size;i++){
+    const cell = document.createElement('div');
+    cell.classList.add('cell');
+    cell.dataset.index = i;
+    cell.addEventListener('click', onCellClick);
+    boardEl.appendChild(cell);
+  }
+}
+
+letterButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    selectedLetter = btn.dataset.letter;
+    letterButtons.forEach(b=>b.style.outline='none');
+    btn.style.outline='2px solid var(--accent)';
+  });
+});
+letterButtons[0].style.outline='2px solid var(--accent)';
+
+function onCellClick(e){
+  const idx = +e.target.dataset.index;
+  if (!gameActive || board[idx] !== '') return;
+  makeMove(idx, selectedLetter, currentPlayer);
+
+  if (vsComputer && gameActive && currentPlayer === 2) {
+    setTimeout(computerMove, 400);
+  }
+}
+
+function makeMove(idx, letter, player){
+  board[idx] = letter;
+  const cell = document.querySelector(`.cell[data-index="${idx}"]`);
+  cell.textContent = letter;
+  cell.style.color = player===1 ?
+    getComputedStyle(document.body).getPropertyValue('--p1-color') :
+    getComputedStyle(document.body).getPropertyValue('--p2-color');
+
+  moveHistory.push({idx, letter, player});
+  redoStack = [];
+
+  const points = checkForSOS(idx);
+  if (points > 0) {
+    scores[player-1] += points;
+    scoresEl.textContent = `P1: ${scores[0]} | P2: ${scores[1]}`;
+    statusEl.textContent = `Player ${player} scored ${points} point(s)! Go again.`;
+  } else {
+    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    statusEl.textContent = `Player ${currentPlayer}'s turn`;
+  }
+
+  if (board.every(cell=>cell !== '')) endGame();
+}
+
+function endGame(){
+  gameActive = false;
+  if (scores[0]>scores[1]) statusEl.textContent='🏆 Player 1 wins!';
+  else if (scores[1]>scores[0]) statusEl.textContent='🏆 Player 2 wins!';
+  else statusEl.textContent='It’s a draw!';
+}
+
+function checkForSOS(lastIndex){
+  const row=Math.floor(lastIndex/size), col=lastIndex%size;
+  let found=0;
+  const dirs=[{dr:0,dc:1},{dr:1,dc:0},{dr:1,dc:1},{dr:1,dc:-1}];
+  for(let {dr,dc} of dirs){
+    for(let o=-2;o<=0;o++){
+      const r0=row+o*dr,c0=col+o*dc;
+      const r1=r0+dr,c1=c0+dc;
+      const r2=r1+dr,c2=c1+dc;
+      if(inBounds(r0,c0)&&inBounds(r1,c1)&&inBounds(r2,c2)){
+        const i0=r0*size+c0,i1=r1*size+c1,i2=r2*size+c2;
+        if(board[i0]==='S'&&board[i1]==='O'&&board[i2]==='S'){
+          highlightCells([i0,i1,i2]); found++;
+        }
+      }
+    }
+  }
+  return found;
+}
+function inBounds(r,c){return r>=0&&r<size&&c>=0&&c<size;}
+function highlightCells(indices){
+  indices.forEach(i=>document.querySelector(`.cell[data-index="${i}"]`).classList.add('winnerLine'));
+}
+
+function resetGame(){
+  buildBoard();
+  scores=[0,0];
+  scoresEl.textContent='P1: 0 | P2: 0';
+  currentPlayer=1;
+  gameActive=true;
+  moveHistory=[]; redoStack=[];
+  statusEl.textContent='Player 1\'s turn';
+}
+
+function computerMove(){
+  const empty = board.map((v,i)=>v===''?i:null).filter(v=>v!==null);
+  if (!empty.length) return;
+  const idx = empty[Math.floor(Math.random()*empty.length)];
+  const letter = Math.random()<0.5?'S':'O';
+  makeMove(idx, letter, 2);
+}
+
+function undo(){
+  if (!moveHistory.length) return;
+  const last = moveHistory.pop();
+  board[last.idx]='';
+  const cell = document.querySelector(`.cell[data-index="${last.idx}"]`);
+  cell.textContent='';
+  cell.classList.remove('winnerLine');
+  redoStack.push(last);
+  currentPlayer = last.player;
+  gameActive=true;
+  statusEl.textContent=`Player ${currentPlayer}'s turn`;
+}
+function redo(){
+  if (!redoStack.length) return;
+  const next = redoStack.pop();
+  makeMove(next.idx, next.letter, next.player);
+}
+
+boardSizeSelect.addEventListener('change',()=>{size=+boardSizeSelect.value;resetGame();});
+resetBtn.addEventListener('click',resetGame);
+themeBtn.addEventListener('click',()=>{
+  themeIndex=(themeIndex+1)%themes.length;
+  document.body.className=themes[themeIndex];
+  themeBtn.textContent='Theme: '+themes[themeIndex].replace('theme-','').replace(/^./,c=>c.toUpperCase());
+});
+modeToggle.addEventListener('click',()=>{
+  vsComputer=!vsComputer;
+  modeToggle.textContent=vsComputer?'Mode: vs Computer':'Mode: 2 Player';
+  resetGame();
+});
+undoBtn.addEventListener('click',undo);
+redoBtn.addEventListener('click',redo);
+
+buildBoard();
+resetGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>House Designer — Drag & Drop Builder</title>
+<style>
+  :root{
+    --bg: #f3f7fb;
+    --panel: #ffffff;
+    --accent: #2b6cb0;
+    --muted: #7b8a97;
+    --canvas-bg: linear-gradient(180deg,#e6f0ff,#f9fbff);
+  }
+   header {
+    background: #2a2f38;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    z-index: 10;
+    padding-left: 25%;
+    padding-right: 25%;
+  }
+  body.bright header {
+    background: #ffeb99;
+    color: #333333;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: #ffcc00;
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+    color: inherit;
+  }
+  nav ul li:hover {
+    color: #ffcc00;
+  }
+  body.bright nav ul li:hover {
+    color: #cc9a00;
+  }
+
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg);}
+  .app {
+    display:grid;
+    grid-template-columns: 220px 1fr 300px;
+    gap:14px;
+    height:100vh;
+    padding:14px;
+    box-sizing:border-box;
+  }
+  .panel {
+    background:var(--panel);
+    border-radius:12px;
+    padding:12px;
+    box-shadow:0 6px 18px rgba(15,23,42,0.06);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .left .title, .right .title { font-weight:700; color:#12233a; }
+  .palette {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:6px;
+  }
+  .palette .item {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px;
+    border-radius:8px;
+    background:linear-gradient(180deg, #ffffff, #fbfdff);
+    cursor:grab;
+    user-select:none;
+    border:1px solid rgba(16,24,40,0.04);
+  }
+  .palette .item:active { cursor:grabbing; }
+  .palette .thumb {
+    width:44px;height:32px;border-radius:6px;background:#e6eef8;display:flex;align-items:center;justify-content:center;color:#0b2f4a;font-weight:700;
+  }
+  .controls { display:flex;gap:8px;flex-wrap:wrap; }
+  button {
+    background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 14px rgba(43,108,176,0.18);
+  }
+  button.ghost { background:transparent;color:var(--accent);border:1px solid rgba(43,108,176,0.12);box-shadow:none; }
+  .canvas-wrap {
+    position:relative;
+    border-radius:12px;
+    overflow:hidden;
+    background:var(--canvas-bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+  }
+  canvas#designer {
+    border-radius:10px;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.02) 0 1px, transparent 1px 32px);
+    box-shadow: inset 0 -30px 60px rgba(2,6,23,0.03);
+  }
+  .right .props { display:flex;flex-direction:column;gap:8px;margin-top:8px; }
+  label{font-size:13px;color:var(--muted);margin-bottom:6px;}
+  input[type=range]{width:100%;}
+  .bottom-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 18px;
+  }
+  .small { font-size:13px;color:var(--muted); }
+  .kbd { background:#eef6ff;padding:4px 8px;border-radius:6px;border:1px solid rgba(10,40,80,0.04); font-weight:700; color:#0b3b66; }
+  @media (max-width:980px){
+    .app{grid-template-columns: 1fr; grid-auto-rows: auto auto; padding:10px; gap:10px;}
+  }
+</style>
+</head>
+<body>
+    <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='build.html'">Construction Games</li>
+      </ul>
+    </nav>
+  </header>
+  <div class="app">
+    <div class="panel left">
+      <div class="title">Palette</div>
+      <div class="small">Drag an element on to the canvas</div>
+      <div class="palette" id="palette">
+        <div class="item" draggable="true" data-type="wall">
+          <div class="thumb">W</div>
+          <div>
+            <div style="font-weight:700">Wall</div>
+            <div class="small">Straight wall segment</div>
+          </div>
+        </div>
+        <div class="item" draggable="true" data-type="window">
+          <div class="thumb">☐</div>
+          <div>
+            <div style="font-weight:700">Window</div>
+            <div class="small">Rectangular window</div>
+          </div>
+        </div>
+        <div class="item" draggable="true" data-type="door">
+          <div class="thumb">▭</div>
+          <div>
+            <div style="font-weight:700">Door</div>
+            <div class="small">Single door</div>
+          </div>
+        </div>
+        <div class="item" draggable="true" data-type="roof">
+          <div class="thumb">△</div>
+          <div>
+            <div style="font-weight:700">Roof</div>
+            <div class="small">Gable roof piece</div>
+          </div>
+        </div>
+        <div class="item" draggable="true" data-type="tree">
+          <div class="thumb">🌳</div>
+          <div><div style="font-weight:700">Tree</div><div class="small">Decoration</div></div>
+        </div>
+        <div class="item" draggable="true" data-type="sofa">
+          <div class="thumb">🛋</div>
+          <div><div style="font-weight:700">Sofa</div><div class="small">Interior</div></div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="small">Tips</div>
+        <ul style="margin:6px 0 0 18px;color:var(--muted)">
+          <li>Drag to place items</li>
+          <li>Click to select, drag to move</li>
+          <li>Rotate selected: <span class="kbd">R</span></li>
+          <li>Delete selected: <span class="kbd">Del</span></li>
+          <li>Undo: <span class="kbd">Ctrl+Z</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel canvas-wrap" style="position:relative;">
+      <canvas id="designer" width="900" height="600"></canvas>
+      <div class="bottom-center">
+        <button id="clearBtn" class="ghost">Restart / Clear</button>
+        <button id="exportBtn">Export PNG</button>
+      </div>
+    </div>
+
+    <div class="panel right">
+      <div class="title">Properties</div>
+      <div class="small">Selected item settings</div>
+      <div class="props" id="props">
+        <div id="noSel">No item selected — select an element to edit.</div>
+        <div id="selProps" style="display:none">
+          <label>Type: <span id="propType" style="font-weight:700"></span></label>
+          <label>Width: <input id="propWidth" type="range" min="20" max="400" /></label>
+          <label>Height: <input id="propHeight" type="range" min="20" max="400" /></label>
+          <label>Rotation: <input id="propRot" type="range" min="0" max="360" /></label>
+          <label>Color: <input id="propColor" type="color" /></label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button id="bringFront">Bring Front</button>
+            <button id="sendBack" class="ghost">Send Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* House Designer — core logic
+   - Canvas rendering
+   - Drag from palette to canvas to create item
+   - Select/move/rotate/delete/undo/export
+*/
+(() => {
+  const canvas = document.getElementById('designer');
+  const ctx = canvas.getContext('2d');
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = canvas.width * dpr;
+  canvas.height = canvas.height * dpr;
+  canvas.style.width = (canvas.width / dpr) + 'px';
+  canvas.style.height = (canvas.height / dpr) + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const GRID = 32;
+  let items = []; // placed items
+  let history = [];
+  let selected = null;
+  let dragging = false;
+  let dragOffset = {x:0,y:0};
+  let rotating = false;
+  let paletteDrag = null;
+  let mouse = {x:0,y:0};
+
+  function snap(v){ return Math.round(v / GRID) * GRID; }
+
+  // Item factory
+  function createItem(type, x, y){
+    const base = { id: Date.now() + Math.random(), type, x, y, width: 120, height: 32, rot: 0, color: '#bfe3ff' };
+    switch(type){
+      case 'wall': base.width = 160; base.height = 24; base.color = '#c4b59a'; break;
+      case 'window': base.width = 80; base.height = 60; base.color = '#90e0ef'; break;
+      case 'door': base.width = 60; base.height = 100; base.color = '#8d6a4f'; break;
+      case 'roof': base.width = 200; base.height = 70; base.color = '#e76f51'; break;
+      case 'tree': base.width = 70; base.height = 90; base.color = '#2f9e44'; break;
+      case 'sofa': base.width = 100; base.height = 50; base.color = '#f4a261'; break;
+      default: break;
+    }
+    return base;
+  }
+
+  // Rendering utilities
+  function clearCanvas(){
+    const w = canvas.width / dpr, h = canvas.height / dpr;
+    ctx.clearRect(0,0,w,h);
+    // subtle grid background
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = '#000';
+    for(let gx=0; gx<w; gx+=GRID){
+      ctx.fillRect(gx, 0, 1, h);
+    }
+    for(let gy=0; gy<h; gy+=GRID){
+      ctx.fillRect(0, gy, w, 1);
+    }
+    ctx.restore();
+  }
+
+  function draw() {
+    clearCanvas();
+    // draw items in order
+    for(let it of items){
+      drawItem(it);
+    }
+    // draw selection outline
+    if(selected){
+      drawSelection(selected);
+    }
+    requestAnimationFrame(()=>{});
+  }
+
+  function drawItem(it){
+    ctx.save();
+    ctx.translate(it.x, it.y);
+    ctx.rotate(it.rot * Math.PI/180);
+    // For visual clarity use basic shapes per type
+    switch(it.type){
+      case 'wall':
+        ctx.fillStyle = it.color;
+        ctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+        break;
+      case 'window':
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+        ctx.strokeStyle = '#9fd7ea';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-it.width/2+6, -it.height/2+6, it.width-12, it.height-12);
+        break;
+      case 'door':
+        ctx.fillStyle = it.color;
+        ctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(it.width/4, 0, 3, 0, Math.PI*2); ctx.fill();
+        break;
+      case 'roof':
+        ctx.fillStyle = it.color;
+        ctx.beginPath();
+        ctx.moveTo(-it.width/2, it.height/2);
+        ctx.lineTo(0, -it.height/2);
+        ctx.lineTo(it.width/2, it.height/2);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      case 'tree':
+        ctx.fillStyle = '#5fbf57';
+        ctx.beginPath();
+        ctx.arc(0, -it.height/6, it.width/3, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#6b3e26';
+        ctx.fillRect(-8, -it.height/2 + 20, 16, it.height/2);
+        break;
+      case 'sofa':
+        ctx.fillStyle = it.color;
+        ctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+        ctx.fillStyle = '#c27d52';
+        ctx.fillRect(-it.width/2, -it.height/2, it.width*0.25, it.height);
+        ctx.fillRect(it.width*0.25, -it.height/2, it.width*0.25, it.height);
+        break;
+      default:
+        ctx.fillStyle = it.color;
+        ctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+    }
+    ctx.restore();
+  }
+
+  function drawSelection(it){
+    ctx.save();
+    ctx.translate(it.x, it.y);
+    ctx.rotate(it.rot * Math.PI/180);
+    ctx.strokeStyle = '#1e90ff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,6]);
+    ctx.strokeRect(-it.width/2 -6, -it.height/2 -6, it.width+12, it.height+12);
+    ctx.setLineDash([]);
+    // rotation handle
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#0b63b8';
+    ctx.lineWidth = 1.5;
+    const hx = 0, hy = -it.height/2 - 20;
+    ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Hit test (reverse order -> topmost first)
+  function hitTest(px, py){
+    for(let i=items.length-1;i>=0;i--){
+      const it = items[i];
+      // transform point into item's local coords
+      const dx = px - it.x, dy = py - it.y;
+      const ang = -it.rot * Math.PI/180;
+      const lx = dx * Math.cos(ang) - dy * Math.sin(ang);
+      const ly = dx * Math.sin(ang) + dy * Math.cos(ang);
+      if (lx >= -it.width/2 && lx <= it.width/2 && ly >= -it.height/2 && ly <= it.height/2) return it;
+    }
+    return null;
+  }
+
+  // Mouse / touch handling
+  function getPointer(e){
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    const x = (p.clientX - rect.left);
+    const y = (p.clientY - rect.top);
+    return {x, y};
+  }
+
+  canvas.addEventListener('pointerdown', (ev) => {
+    const p = getPointer(ev);
+    mouse = p;
+    const hit = hitTest(p.x, p.y);
+    if (paletteDrag) return; // ignore canvas clicks while dragging from palette
+    if (hit){
+      selected = hit;
+      // are we on rotation handle?
+      const ang = -selected.rot * Math.PI/180;
+      const dx = p.x - selected.x, dy = p.y - selected.y;
+      const lx = dx * Math.cos(ang) - dy * Math.sin(ang);
+      const hy = -selected.height/2 - 20;
+      if (Math.hypot(lx - 0, (dx * Math.sin(ang) + dy * Math.cos(ang)) - hy) < 12){
+        rotating = true;
+      } else {
+        dragging = true;
+        dragOffset.x = p.x - selected.x;
+        dragOffset.y = p.y - selected.y;
+      }
+      pushHistory();
+      updatePropsUI();
+    } else {
+      selected = null;
+      updatePropsUI();
+    }
+    drawAll();
+  });
+
+  canvas.addEventListener('pointermove', (ev) => {
+    const p = getPointer(ev);
+    mouse = p;
+    if (dragging && selected){
+      selected.x = snap(p.x - dragOffset.x);
+      selected.y = snap(p.y - dragOffset.y);
+      drawAll();
+    }
+    if (rotating && selected){
+      const dx = p.x - selected.x, dy = p.y - selected.y;
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+      selected.rot = Math.round(angle % 360);
+      if (selected.rot < 0) selected.rot += 360;
+      drawAll();
+      updatePropsUI();
+    }
+  });
+
+  canvas.addEventListener('pointerup', () => {
+    dragging = false;
+    rotating = false;
+    paletteDrag = null;
+  });
+
+  // Palette drag-to-canvas
+  const palette = document.getElementById('palette');
+  palette.querySelectorAll('.item').forEach(el => {
+    el.addEventListener('dragstart', (e) => {
+      const type = el.getAttribute('data-type');
+      paletteDrag = {type};
+      e.dataTransfer.setData('text/plain', type);
+    });
+  });
+
+  canvas.addEventListener('dragover', (e) => { e.preventDefault(); });
+  canvas.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const p = getPointer(e);
+    const type = e.dataTransfer.getData('text/plain') || (paletteDrag && paletteDrag.type);
+    if (type){
+      const it = createItem(type, snap(p.x), snap(p.y));
+      items.push(it);
+      pushHistory();
+      drawAll();
+    }
+    paletteDrag = null;
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      undo(); e.preventDefault(); return;
+    }
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (selected){
+        pushHistory();
+        items = items.filter(i => i !== selected);
+        selected = null;
+        updatePropsUI();
+        drawAll();
+      }
+    }
+    if (e.key.toLowerCase() === 'r' && selected){
+      // rotate 15 degrees
+      pushHistory();
+      selected.rot = (selected.rot + 15) % 360;
+      updatePropsUI(); drawAll();
+    }
+  });
+
+  // Undo
+  function pushHistory(){
+    history.push(JSON.stringify(items));
+    if (history.length > 60) history.shift();
+  }
+  function undo(){
+    if (!history.length) return;
+    const previous = history.pop();
+    items = JSON.parse(previous);
+    selected = null;
+    updatePropsUI();
+    drawAll();
+  }
+
+  // Props UI bindings
+  const selProps = document.getElementById('selProps');
+  const noSel = document.getElementById('noSel');
+  const propType = document.getElementById('propType');
+  const propW = document.getElementById('propWidth');
+  const propH = document.getElementById('propHeight');
+  const propR = document.getElementById('propRot');
+  const propColor = document.getElementById('propColor');
+  const bringFront = document.getElementById('bringFront');
+  const sendBack = document.getElementById('sendBack');
+
+  function updatePropsUI(){
+    if (!selected){ selProps.style.display = 'none'; noSel.style.display = 'block'; return; }
+    selProps.style.display = 'block'; noSel.style.display = 'none';
+    propType.textContent = selected.type;
+    propW.value = selected.width;
+    propH.value = selected.height;
+    propR.value = selected.rot % 360;
+    propColor.value = selected.color || '#ffffff';
+  }
+
+  propW.addEventListener('input', () => { if(selected){ selected.width = +propW.value; drawAll(); }});
+  propH.addEventListener('input', () => { if(selected){ selected.height = +propH.value; drawAll(); }});
+  propR.addEventListener('input', () => { if(selected){ selected.rot = +propR.value; drawAll(); }});
+  propColor.addEventListener('input', () => { if(selected){ selected.color = propColor.value; drawAll(); }});
+
+  bringFront.addEventListener('click', () => {
+    if (!selected) return;
+    items = items.filter(i => i !== selected);
+    items.push(selected);
+    drawAll();
+  });
+  sendBack.addEventListener('click', () => {
+    if (!selected) return;
+    items = items.filter(i => i !== selected);
+    items.unshift(selected);
+    drawAll();
+  });
+
+  // Clear / restart
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('Clear the canvas?')) return;
+    items = [];
+    selected = null;
+    history = [];
+    drawAll();
+  });
+
+  // Export PNG
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    // render a fresh temp canvas at same pixel size
+    const sw = canvas.width, sh = canvas.height;
+    const temp = document.createElement('canvas');
+    temp.width = sw; temp.height = sh;
+    const tctx = temp.getContext('2d');
+    tctx.scale(dpr, dpr);
+    // draw background
+    tctx.fillStyle = '#f9fbff';
+    tctx.fillRect(0,0,sw/dpr,sh/dpr);
+    // draw items
+    for(let it of items) {
+      // reuse drawItem by mapping to tctx via a small wrapper
+      tctx.save();
+      tctx.translate(it.x, it.y);
+      tctx.rotate(it.rot * Math.PI/180);
+      // draw same shapes
+      switch(it.type){
+        case 'wall': tctx.fillStyle = it.color; tctx.fillRect(-it.width/2, -it.height/2, it.width, it.height); break;
+        case 'window': tctx.fillStyle = '#fff'; tctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+                       tctx.strokeStyle = '#9fd7ea'; tctx.lineWidth=3; tctx.strokeRect(-it.width/2+6, -it.height/2+6, it.width-12, it.height-12); break;
+        case 'door': tctx.fillStyle = it.color; tctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+                     tctx.fillStyle='#000'; tctx.beginPath(); tctx.arc(it.width/4,0,3,0,Math.PI*2); tctx.fill(); break;
+        case 'roof': tctx.fillStyle = it.color; tctx.beginPath(); tctx.moveTo(-it.width/2, it.height/2); tctx.lineTo(0, -it.height/2); tctx.lineTo(it.width/2, it.height/2); tctx.closePath(); tctx.fill(); break;
+        case 'tree': tctx.fillStyle = '#5fbf57'; tctx.beginPath(); tctx.arc(0, -it.height/6, it.width/3, 0, Math.PI*2); tctx.fill(); tctx.fillStyle='#6b3e26'; tctx.fillRect(-8, -it.height/2 + 20, 16, it.height/2); break;
+        case 'sofa': tctx.fillStyle = it.color; tctx.fillRect(-it.width/2, -it.height/2, it.width, it.height); tctx.fillStyle='#c27d52'; tctx.fillRect(-it.width/2, -it.height/2, it.width*0.25, it.height); tctx.fillRect(it.width*0.25, -it.height/2, it.width*0.25, it.height); break;
+        default: tctx.fillStyle=it.color; tctx.fillRect(-it.width/2, -it.height/2, it.width, it.height);
+      }
+      tctx.restore();
+    }
+    // create PNG
+    const url = temp.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url; a.download = 'house-design.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  // draw everything once per animation frame
+  function drawAll(){
+    clearCanvas();
+    for(let it of items) drawItem(it);
+    if (selected) drawSelection(selected);
+  }
+
+  // initial canvas center helper
+  function centerHint(){
+    // if empty, place a faint house guide
+    if (items.length === 0){
+      ctx.save();
+      ctx.globalAlpha = 0.06;
+      ctx.fillStyle = '#5fb2ff';
+      ctx.fillRect(canvas.width/dpr/2 - 120, canvas.height/dpr/2 + 60, 240, 24); // base
+      ctx.beginPath(); ctx.moveTo(canvas.width/dpr/2 - 140, canvas.height/dpr/2 + 60); ctx.lineTo(canvas.width/dpr/2, canvas.height/dpr/2 - 40); ctx.lineTo(canvas.width/dpr/2 + 140, canvas.height/dpr/2 + 60); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // Keep a small loop for smooth interactions
+  function tick(){
+    drawAll();
+    centerHint();
+    requestAnimationFrame(tick);
+  }
+
+  // Resize handling (keeps canvas pixel ratio consistent)
+  function adapt(){
+    const rect = canvas.getBoundingClientRect();
+    const cw = Math.floor(rect.width * dpr), ch = Math.floor(rect.height * dpr);
+    if (canvas.width !== cw || canvas.height !== ch){
+      canvas.width = cw; canvas.height = ch;
+      canvas.style.width = (cw / dpr) + 'px';
+      canvas.style.height = (ch / dpr) + 'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+  }
+  window.addEventListener('resize', adapt);
+
+  // Start
+  pushHistory();
+  tick();
+  adapt();
+
+  // utility: expose current state for debugging (optional)
+  window._houseDesigner = { items, createItem, pushHistory };
+})();
+</script>
+</body>
+</html>
