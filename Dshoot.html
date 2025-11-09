@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Duck Hunt</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #87ceeb;
+    font-family: Arial, sans-serif;
+  }
+  canvas {
+    display: block;
+  }
+  /* Header */
+  header {
+    width: 100%;
+    background: #2a2f38;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    user-select: none;
+    position: relative;
+  }
+  nav {
+    display: flex;
+  }
+  nav ul {
+    display: flex;
+    gap: 3rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #ffcc00;
+    cursor: pointer;
+  }
+  nav ul li:hover {
+    text-decoration: underline;
+  }
+  header h1 {
+    position: absolute;
+    left: 1rem;
+    color: #ffcc00;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  /* Restart button */
+  #restartBtn {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: #ffcc00;
+    color: #2a2f38;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 0 8px #ffcc00;
+    display: none;
+    z-index: 1001;
+  }
+  #restartBtn:hover {
+    background: #e6b800;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li onclick="window.location.href='Shoot.html'">Shooting Games</li>
+    </ul>
+  </nav>
+</header>
+
+<button id="restartBtn">Restart Game</button>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let score = 0;
+let misses = 0;
+const maxMisses = 5;
+let ducks = [];
+let clouds = [];
+let gameOver = false;
+
+// Cloud creation
+for (let i = 0; i < 5; i++) {
+  clouds.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height * 0.3,
+    size: 40 + Math.random() * 30,
+    speed: 0.2 + Math.random() * 0.5
+  });
+}
+
+// Duck class - enhanced shape and slower speed
+class Duck {
+  constructor() {
+    this.x = -50;
+    this.y = Math.random() * (canvas.height * 0.6);
+    this.size = 50; // slightly bigger for more detail
+    this.speed = 0.8 + Math.random() * 1.2; // slower speed (was 2 to 5)
+    this.direction = 1; // 1 = right, -1 = left
+    this.wing = 0;
+  }
+  update() {
+    this.x += this.speed * this.direction;
+    this.wing += 0.25;
+    if (this.x > canvas.width + 50 || this.x < -50) {
+      misses++;
+      checkGameOver();
+      this.reset();
+    }
+  }
+  reset() {
+    this.x = this.direction === 1 ? -50 : canvas.width + 50;
+    this.y = Math.random() * (canvas.height * 0.6);
+    this.speed = 0.8 + Math.random() * 1.2; // maintain slower speed
+    this.direction *= Math.random() > 0.5 ? -1 : 1;
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.direction, 1);
+    // Body - ellipse with gradient for feather effect
+    let grad = ctx.createRadialGradient(0, 0, this.size/4, 0, 0, this.size);
+    grad.addColorStop(0, '#b5651d');  // brown
+    grad.addColorStop(1, '#58360c');  // darker brown
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wing - flapping by sinusoidal movement
+    ctx.save();
+    ctx.translate(-this.size / 2, 0);
+    ctx.rotate(Math.sin(this.wing) * 0.3);
+    ctx.fillStyle = '#f0f0f0'; // white wing
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size * 0.35, this.size * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Head
+    ctx.beginPath();
+    ctx.fillStyle = '#4b3612'; // dark brown
+    ctx.ellipse(this.size * 0.55, 0, this.size * 0.3, this.size * 0.23, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak - orange triangle
+    ctx.fillStyle = "orange";
+    ctx.beginPath();
+    ctx.moveTo(this.size * 0.8, -5);
+    ctx.lineTo(this.size * 0.8 + 15, 0);
+    ctx.lineTo(this.size * 0.8, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye - white and black
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.arc(this.size * 0.65, -5, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.size * 0.65, -5, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+// Spawn initial ducks
+for (let i = 0; i < 3; i++) {
+  let duck = new Duck();
+  duck.x = Math.random() * canvas.width;
+  duck.direction = Math.random() > 0.5 ? 1 : -1;
+  ducks.push(duck);
+}
+
+// Mouse click shooting
+canvas.addEventListener("click", (e) => {
+  if (gameOver) return;
+  ducks.forEach((duck) => {
+    let dx = e.clientX - duck.x;
+    let dy = e.clientY - duck.y;
+    if (Math.sqrt(dx * dx + dy * dy) < duck.size) {
+      score++;
+      document.getElementById("score").innerText = "Score: " + score;
+      duck.reset();
+    }
+  });
+});
+
+function checkGameOver() {
+  if (misses >= maxMisses) {
+    gameOver = true;
+    document.getElementById("restartBtn").style.display = "block";
+  }
+}
+
+// Restart game on button click
+document.getElementById("restartBtn").addEventListener("click", () => {
+  score = 0;
+  misses = 0;
+  gameOver = false;
+  document.getElementById("score").innerText = "Score: " + score;
+  document.getElementById("restartBtn").style.display = "none";
+  ducks.forEach(d => d.reset());
+});
+
+// Game loop
+function drawBackground() {
+  // Sky gradient
+  let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#87ceeb");
+  gradient.addColorStop(1, "#b0e0e6");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Clouds
+  ctx.fillStyle = "white";
+  clouds.forEach((cloud) => {
+    ctx.beginPath();
+    ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+    ctx.arc(cloud.x + cloud.size, cloud.y + 10, cloud.size * 0.8, 0, Math.PI * 2);
+    ctx.arc(cloud.x - cloud.size, cloud.y + 10, cloud.size * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    cloud.x += cloud.speed;
+    if (cloud.x - cloud.size > canvas.width) cloud.x = -cloud.size;
+  });
+
+  // Grass
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+}
+
+function drawScore() {
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 20, 30);
+  ctx.fillText("Misses: " + misses + "/" + maxMisses, 20, 60);
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.font = "40px Arial";
+  ctx.fillText("Game Over", canvas.width / 2 - 100, canvas.height / 2);
+  ctx.font = "20px Arial";
+  ctx.fillText("Final Score: " + score, canvas.width / 2 - 60, canvas.height / 2 + 40);
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBackground();
+
+  if (!gameOver) {
+    ducks.forEach((duck) => {
+      duck.update();
+      duck.draw();
+    });
+    drawScore();
+    if (misses >= maxMisses) {
+      gameOver = true;
+      document.getElementById("restartBtn").style.display = "block";
+    }
+  } else {
+    drawGameOver();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>

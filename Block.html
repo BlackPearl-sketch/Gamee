@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Block Stacker</title>
+<style>
+  :root{
+    --accent: #ffd166;
+    --bg1: #0f172a;
+    --bg2: #0b2545;
+    --card: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+  }
+  body.dark {
+    --accent: #ffd166;
+    --bg1: #0f172a;
+    --bg2: #0b2545;
+    --card: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+    color: #e6eef8;
+    background: radial-gradient(1200px 600px at 10% 20%, rgba(255,146,66,0.06), transparent),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+  }
+  body.bright {
+    --accent: #ffbf47;
+    --bg1: #f0f4f8;
+    --bg2: #d9e2ec;
+    --card: rgba(0,0,0,0.1);
+    --glass: rgba(0,0,0,0.05);
+    color: #222222;
+    background: radial-gradient(1200px 600px at 10% 20%, rgba(255, 191, 71, 0.2), transparent),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+  }
+
+  html,body {
+    height:100%;
+    margin:0;
+    font-family: Inter, system-ui, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+  }
+
+header {
+  display: flex;
+  justify-content: center; /* Center the header content horizontally */
+  align-items: center;
+  gap: 2rem; /* Space between elements */
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  max-width: 1000px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  z-index: 10;
+  padding-left: 25%;
+}
+
+  body.bright header {
+    background: #ffeb99;
+    color: #333333;
+  }
+  header h1 {
+    font-family: 'Montserrat', sans-serif;
+    color: #ffcc00;
+    cursor: pointer;
+    margin: 0;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  nav ul li {
+    cursor: pointer;
+    font-weight: 600;
+  }
+  body.bright nav ul li {
+    color: #555555;
+  }
+  nav ul li:hover {
+    color: #ffcc00;
+  }
+  body.bright nav ul li:hover {
+    color: #cc9a00;
+  }
+
+  /* Theme Button */
+  .theme-btn {
+    background: var(--accent);
+    color: #222;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease;
+  }
+  .theme-btn:hover {
+    opacity: 0.9;
+  }
+  body.bright .theme-btn {
+    background: var(--accent);
+    color: #222;
+  }
+
+  .game-wrap {
+    width: min(520px, 94vw);
+    aspect-ratio: 9 / 16;
+    max-height: 860px;
+    display:flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    padding: 18px;
+    box-sizing: border-box;
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--glass), transparent);
+    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+    position: relative;
+    margin: 1rem auto;
+  }
+
+  header.game-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 8px;
+  }
+  .title {
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    font-size: 1.5rem;
+  }
+  .score {
+    background: var(--card);
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 66px;
+    text-align: center;
+  }
+
+  canvas {
+    width: 100%;
+    flex: 1 1 auto;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: inset 0 8px 24px rgba(3,7,18,0.6);
+    touch-action: manipulation;
+  }
+
+  footer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+  }
+
+  button {
+    background: linear-gradient(180deg, var(--accent), #ffb703);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    color: #102a43;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: linear-gradient(180deg, #ffb703, var(--accent));
+  }
+
+  .hint {
+    font-size: 12px;
+    opacity: 0.9;
+    text-align: center;
+    color: #dbe9ff;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .game-over {
+    pointer-events: auto;
+    background: linear-gradient(180deg, rgba(2,6,23,0.6), rgba(2,6,23,0.6));
+    padding: 18px 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.7);
+  }
+  .game-over h2 {
+    margin: 0 0 6px 0;
+    font-size: 20px;
+  }
+  .game-over p {
+    margin: 0 0 12px 0;
+    color: #cfe8ff;
+    opacity: 0.9;
+  }
+  .small {
+    font-size: 13px;
+    opacity: 0.9;
+  }
+
+  /* Fix restart button position */
+  #restartBtn {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 40px;
+    z-index: 20;
+  }
+
+  @media (max-width: 420px) {
+    .game-wrap {
+      padding: 12px;
+      border-radius: 10px;
+    }
+    button {
+      padding: 8px 14px;
+    }
+  }
+</style>
+</head>
+<body class="dark">
+  <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='build.html'">Construction Games</li>
+      </ul>
+    </nav>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle theme">Theme: Dark</button>
+  </header>
+
+  <div class="game-wrap" role="application" aria-label="Block Stacker game">
+    <header class="game-header">
+      <div class="title">Block Stacker</div>
+      <div class="score" id="score">Score: 0</div>
+    </header>
+
+    <canvas id="game"></canvas>
+
+    <footer>
+      <div class="hint">Click / Tap / Space to drop the block</div>
+    </footer>
+
+    <button id="restartBtn" aria-label="Restart game">Restart</button>
+
+    <div class="overlay" id="overlay" style="display:none;">
+      <div class="game-over" id="gameOverCard" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" aria-describedby="finalScore">
+        <h2 id="gameOverTitle">Game Over</h2>
+        <p id="finalScore">Score: 0</p>
+        <div>
+          <button id="playAgain" aria-label="Play again">Play Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const themeBtn = document.getElementById('themeBtn');
+
+  function fitCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', fitCanvas);
+
+  themeBtn.addEventListener("click", () => {
+    if(document.body.classList.contains("dark")) {
+      document.body.classList.remove("dark");
+      document.body.classList.add("bright");
+      themeBtn.textContent = "Theme: Bright";
+    } else {
+      document.body.classList.remove("bright");
+      document.body.classList.add("dark");
+      themeBtn.textContent = "Theme: Dark";
+    }
+  });
+
+  const state = {
+    gravity: 0.8,
+    baseHeight: 32,
+    speedIncreaseEvery: 6,
+    running: true,
+    blocks: [],
+    moving: null,
+    score: 0,
+    level: 1,
+    maxLevels: 1000,
+    maxBlockWidth: 300,
+  };
+
+  const palettes = ['#ffd166','#06d6a0','#118ab2','#ef476f','#8338ec','#ffd6a5'];
+
+  function startNewGame() {
+    fitCanvas();
+    state.blocks = [];
+    state.score = 0;
+    state.level = 1;
+    state.running = true;
+    state.maxBlockWidth = Math.min(320, canvas.width * 0.7);
+    const baseWidth = state.maxBlockWidth;
+    const base = {
+      x: (canvas.width / window.devicePixelRatio - baseWidth) / 2,
+      y: canvas.height / (window.devicePixelRatio) - state.baseHeight,
+      width: baseWidth,
+      height: state.baseHeight,
+      color: '#0ea5a0',
+      fixed: true
+    };
+    state.blocks.push(base);
+    spawnMovingBlock();
+    updateScoreUI();
+    hideGameOver();
+  }
+
+  function spawnMovingBlock() {
+    const topBlock = state.blocks[state.blocks.length - 1];
+    const width = Math.max(36, Math.round(topBlock.width * (0.9 + Math.random()*0.2)));
+    const height = state.baseHeight;
+    const y = topBlock.y - height;
+    const fromLeft = Math.random() < 0.5;
+    const x = fromLeft ? -width - 10 : (canvas.width / devicePixelRatio) + 10;
+    const speedBase = 2 + Math.min(6, Math.floor(state.score / state.speedIncreaseEvery));
+    const speed = fromLeft ? speedBase : -speedBase;
+
+    state.moving = {
+      x, y, width, height,
+      speed, color: palettes[(state.blocks.length) % palettes.length], fixed: false
+    };
+  }
+
+  function updateScoreUI(){
+    document.getElementById('score').textContent = `Score: ${state.score}`;
+  }
+
+  function dropHandler() {
+    if (!state.running) return;
+    if (!state.moving) return;
+    const top = state.blocks[state.blocks.length - 1];
+    const m = state.moving;
+
+    const overlapLeft = Math.max(top.x, m.x);
+    const overlapRight = Math.min(top.x + top.width, m.x + m.width);
+    const overlap = overlapRight - overlapLeft;
+
+    if (overlap <= 0) {
+      gameOver();
+      return;
+    }
+
+    const newBlock = {
+      x: overlapLeft,
+      y: m.y,
+      width: overlap,
+      height: m.height,
+      color: m.color,
+      fixed: true
+    };
+    state.blocks.push(newBlock);
+    state.score += 1;
+    state.level = Math.min(state.maxLevels, state.level + 1);
+    updateScoreUI();
+
+    spawnMovingBlock();
+  }
+
+  function gameOver() {
+    state.running = false;
+    showGameOver();
+  }
+
+  function showGameOver() {
+    const overlay = document.getElementById('overlay');
+    const finalScore = document.getElementById('finalScore');
+    finalScore.textContent = `Score: ${state.score}`;
+    overlay.style.display = 'flex';
+  }
+  function hideGameOver() {
+    const overlay = document.getElementById('overlay');
+    overlay.style.display = 'none';
+  }
+
+  let lastT = 0;
+  const devicePixelRatio = window.devicePixelRatio || 1;
+
+  function loop(t) {
+    const dt = t - lastT;
+    lastT = t;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function update() {
+    if (!state.running) return;
+    if (state.moving) {
+      state.moving.x += state.moving.speed;
+      const vw = canvas.width / devicePixelRatio;
+      if (state.moving.x > vw + 200 || state.moving.x < -300) {
+        state.moving.speed *= -1;
+      }
+    }
+  }
+
+  function draw() {
+    const w = canvas.width / devicePixelRatio;
+    const h = canvas.height / devicePixelRatio;
+    ctx.clearRect(0, 0, w, h);
+
+    const gridY = h * 0.18;
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(0, 0, w, gridY);
+
+    for (let i = 0; i < state.blocks.length; i++) {
+      drawBlock(state.blocks[i]);
+    }
+    if (state.moving) drawBlock(state.moving);
+
+    if (state.moving && state.blocks.length) {
+      const top = state.blocks[state.blocks.length - 1];
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#ffffff';
+      const gx = Math.max(top.x, state.moving.x);
+      const gr = Math.min(top.x + top.width, state.moving.x + state.moving.width);
+      if (gr - gx > 0) {
+        ctx.fillRect(gx, state.moving.y, gr - gx, state.moving.height);
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawBlock(b) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = b.color || '#ffd166';
+    const r = Math.min(8, b.height * 0.25);
+    roundRect(ctx, b.x + 0.5, b.y + 0.5, b.width - 1, b.height - 1, r, true, true);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, b.x + 2, b.y + 2, b.width - 4, 6, 3, true, false);
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!state.running) return;
+      dropHandler();
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      startNewGame();
+    }
+  });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!state.running) return;
+    dropHandler();
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', () => startNewGame());
+  document.getElementById('playAgain').addEventListener('click', () => startNewGame());
+
+  fitCanvas();
+  startNewGame();
+  requestAnimationFrame(loop);
+
+  new ResizeObserver(() => {
+    fitCanvas();
+  }).observe(canvas);
+})();
+</script>
+</body>
+</html>

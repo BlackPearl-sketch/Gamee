@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameHub - Brain Games</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<style>
+/* Reset */
+* {margin: 0; padding: 0; box-sizing: border-box;}
+
+:root {
+  --bg: #f0f0f0;
+  --text: #222;
+  --primary: #f44336;
+  --secondary: #ff7961;
+  --card-bg: #fff;
+  --nav-bg: #fff;
+  --nav-text: #222;
+  --button-bg: var(--primary);
+  --button-text: #fff;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+  background: url("gg.jpg") center center fixed;
+  background-size: cover;
+}
+
+/* Dark theme variables */
+.dark-theme {
+  --bg: #121212;
+  --text: #e0e0e0;
+  --primary: #bb86fc;
+  --secondary: #3700b3;
+  --card-bg: #1e1e1e;
+  --nav-bg: #1e1e1e;
+  --nav-text: #e0e0e0;
+}
+
+/* Header */
+header {
+  background: var(--nav-bg);
+  color: var(--nav-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+header h1 {
+  font-family: 'Montserrat', sans-serif;
+  color: var(--primary);
+  cursor: pointer;
+}
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+nav ul li {
+  cursor: pointer;
+  font-weight: 600;
+}
+nav ul li:hover {color: var(--primary);}
+.theme-toggle {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* Main Content */
+main {
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem;
+}
+
+section.intro {
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+section h2 {
+  font-family: 'Montserrat', sans-serif;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+/* Game Card Grid */
+.game-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+  gap: 1.5rem;
+}
+.game-card {
+  background: var(--card-bg);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+.game-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+.game-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+.game-info {
+  padding: 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.game-info h3 {
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+.game-info p {
+  font-size: 0.85rem;
+  flex-grow: 1;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+.btn-play {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: bold;
+  align-self: flex-start;
+}
+.btn-play:hover {
+  background: var(--secondary);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 onclick="window.location.href='home.html'">GameHub</h1>
+  <nav>
+    <ul>
+      <li onclick="window.location.href='home.html'">Home</li>
+      <li>Puzzle Games</li>
+    </ul>
+  </nav>
+  <button class="theme-toggle" id="themeToggle" title="Toggle dark/light theme">
+    <i class="fas fa-moon"></i>
+  </button>
+</header>
+
+<main>
+  <section class="intro">
+    <h2>Pazzle Games - Challenge Your Mind</h2>
+    <p>Test your intelligence, logic, and problem-solving skills with a selection of engaging brain games. Sharpen your mind while having fun!</p>
+  </section>
+
+  <section id="catalog">
+    <div class="game-catalog" id="brainGamesCatalog">
+      <!-- Cards injected by JS -->
+    </div>
+  </section>
+</main>
+
+<script>
+// Brain games list
+const brainGames = [
+  {
+    title: "Sudoku",
+    desc: "Fill the grid so every row, column, and 3x3 box contains all digits from 1 to 9.",
+    image: "Sudoimg.png",
+    url: "Sudoku.html"
+  },
+  {
+    title: "Liquid Color",
+    desc: "Sort colored liquids in tubes until each tube has exactly one color.",
+    image: "colorimg.png",
+    url: "liquid color.html"
+  },
+  {
+    title: "2048",
+    desc: "Slide numbered tiles to combine and reach the 2048 tile.",
+    image: "2048img.png",
+    url: "2048.html"
+  },
+  {
+    title: "Brick Breaker",
+    desc: "Bounce the ball and break all bricks to win.",
+    image: "brickimg.png",
+    url: "brick.html"
+  },
+  {
+    title: "Key Escape",
+    desc: "Free the key by sliding blocks and solving the puzzle.",
+    image: "kimg.png",
+    url: "key.html"
+  }
+];
+
+function renderBrainGames() {
+  const container = document.getElementById('brainGamesCatalog');
+  container.innerHTML = '';
+  brainGames.forEach(game => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <img src="${game.image}" alt="${game.title}">
+      <div class="game-info">
+        <h3>${game.title}</h3>
+        <p>${game.desc}</p>
+        <button class="btn-play" onclick="window.open('${game.url}', '_blank')">Play Now</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// Theme toggle button
+const themeToggleBtn = document.getElementById('themeToggle');
+themeToggleBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark-theme');
+  themeToggleBtn.innerHTML = document.body.classList.contains('dark-theme')
+    ? '<i class="fas fa-sun"></i>'
+    : '<i class="fas fa-moon"></i>';
+});
+
+// Initial render of brain games
+renderBrainGames();
+</script>
+
+</body>
+</html>

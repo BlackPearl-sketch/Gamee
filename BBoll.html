@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>🏀 Drag & Throw Basketball</title>
+  <style>
+    body {
+      margin: 0;
+      background: #1b1f23;
+      font-family: 'Segoe UI', sans-serif;
+      color: #ffcc00;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+      min-height: 100vh;
+      user-select: none;
+    }
+    /* HEADER */
+    header {
+      width: 100%;
+      background: #2a2f38;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    nav {
+      display: flex;
+    }
+    nav ul {
+      display: flex;
+      gap: 3rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      font-weight: 600;
+      font-size: 1.25rem;
+      color: #ffcc00;
+      cursor: pointer;
+    }
+    nav ul li:hover {
+      text-decoration: underline;
+    }
+    header h1 {
+      position: absolute;
+      left: 1rem;
+      color: #ffcc00;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: bold;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    h1 {
+      margin-top: 0;
+      text-shadow: 0 0 8px #ffcc00;
+    }
+    #score {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+    canvas {
+      border: 3px solid #3c1361;
+      background: radial-gradient(circle at center, #2a2f38 20%, #1b1f23 100%);
+      box-shadow: 0 0 20px #3c1361;
+      border-radius: 10px;
+      cursor: grab;
+      touch-action: none;
+      display: block;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='Shoot.html'">Shooting Games</li>
+      </ul>
+    </nav>
+  </header>
+
+  <h1>🏀 Drag the Ball to Shoot</h1>
+  <div id="score">Score: 0</div>
+  <canvas id="gameCanvas" width="600" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+
+    const gravity = 0.25; // Reduced gravity for gentler arc
+    const maxDragDistance = 450; // large drag space behind ball
+    const maxForwardX = 100;
+
+    let score = 0;
+    let dragging = false;
+    let dragStartX, dragStartY;
+
+    const ball = {
+      startX: canvas.width / 2,
+      startY: canvas.height - 120,
+      x: canvas.width / 2,
+      y: canvas.height - 60,
+      radius: 15,
+      color: '#ffcc00',
+      dx: 0,
+      dy: 0,
+      inMotion: false
+    };
+
+    let hoopX = canvas.width / 2;
+    const hoopY = 100;
+
+    function drawHoop() {
+      ctx.beginPath();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.rect(hoopX - 30, hoopY, 60, 10);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#ffcc00';
+      ctx.lineWidth = 4;
+      ctx.arc(hoopX, hoopY + 10, 25, 0, Math.PI);
+      ctx.stroke();
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.fillStyle = ball.color;
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function resetBall() {
+      ball.x = ball.startX;
+      ball.y = ball.startY;
+      ball.dx = 0;
+      ball.dy = 0;
+      ball.inMotion = false;
+    }
+
+    function resetHoop() {
+      // New hoop position closer to ball: between 350 and canvas width - 180
+      hoopX = 350 + Math.random() * (canvas.width - 530);
+    }
+
+    function update() {
+      if (ball.inMotion) {
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+        ball.dy += gravity;
+
+        if (
+          ball.y < hoopY + 25 &&
+          ball.y > hoopY - 15 &&
+          ball.x > hoopX - 25 &&
+          ball.x < hoopX + 25
+        ) {
+          score++;
+          scoreElement.textContent = "Score: " + score;
+          resetBall();
+          resetHoop();
+        }
+      }
+
+      if (
+        ball.y > canvas.height + ball.radius ||
+        ball.x < -ball.radius ||
+        ball.x > canvas.width + ball.radius
+      ) {
+        resetBall();
+      }
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawHoop();
+      drawBall();
+
+      if (dragging) {
+        ctx.beginPath();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = '#ffcc0077';
+        ctx.lineWidth = 3;
+        ctx.moveTo(dragStartX, dragStartY);
+        ctx.lineTo(ball.x, ball.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    function getEventPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left,
+        y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top
+      };
+    }
+
+    function startDrag(e) {
+      if (ball.inMotion) return;
+
+      const pos = getEventPos(e);
+      const dx = pos.x - ball.x;
+      const dy = pos.y - ball.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      const behindArea =
+        pos.x < ball.startX &&
+        pos.x > ball.startX - maxDragDistance &&
+        pos.y > ball.startY - maxDragDistance &&
+        pos.y < ball.startY + maxDragDistance;
+
+      if (dist < ball.radius + 15 || behindArea) {
+        dragging = true;
+        dragStartX = ball.startX;
+        dragStartY = ball.startY;
+        ball.x = pos.x;
+        ball.y = pos.y;
+        e.preventDefault();
+      }
+    }
+
+    function dragMove(e) {
+      if (!dragging) return;
+      const pos = getEventPos(e);
+
+      const minX = ball.startX - maxDragDistance;
+      const maxX = ball.startX + maxForwardX;
+      const minY = ball.startY - maxDragDistance;
+      const maxY = ball.startY + maxDragDistance;
+
+      ball.x = Math.min(Math.max(pos.x, minX), maxX);
+      ball.y = Math.min(Math.max(pos.y, minY), maxY);
+      e.preventDefault();
+    }
+
+    function endDrag(e) {
+      if (!dragging) return;
+
+      const dragVectorX = dragStartX - ball.x;
+      const dragVectorY = dragStartY - ball.y;
+      const dragDistance = Math.sqrt(dragVectorX * dragVectorX + dragVectorY * dragVectorY);
+
+      if (dragDistance > 10) {
+        ball.dx = dragVectorX / 8;
+        ball.dy = dragVectorY / 8;
+        ball.inMotion = true;
+      } else {
+        resetBall();
+      }
+
+      dragging = false;
+    }
+
+    canvas.addEventListener("mousedown", startDrag);
+    canvas.addEventListener("touchstart", startDrag);
+
+    canvas.addEventListener("mousemove", dragMove);
+    canvas.addEventListener("touchmove", dragMove, { passive: false });
+
+    canvas.addEventListener("mouseup", endDrag);
+    canvas.addEventListener("touchend", endDrag);
+
+    resetBall();
+    resetHoop();
+    draw();
+    update();
+  </script>
+</body>
+</html>

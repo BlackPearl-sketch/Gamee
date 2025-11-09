@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bow and Arrows Game</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0;
+      height: 100%;
+      background: linear-gradient(135deg, #1b1f23, #3c1361);
+      color: #ffcc00;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Header Section */
+    header {
+      width: 100%;
+      background: #2a2f38;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      user-select: none;
+      position: relative;
+    }
+    nav {
+      display: flex;
+    }
+    nav ul {
+      display: flex;
+      gap: 3rem;
+      padding: 0;
+      margin: 0;
+      list-style-type: none;
+      font-weight: 600;
+      font-size: 1.25rem;
+      color: #ffcc00;
+      cursor: pointer;
+    }
+    nav ul li:hover {
+      text-decoration: underline;
+    }
+    header h1 {
+      position: absolute;
+      left: 1rem;
+      color: #ffcc00;
+      font-family: 'Montserrat', sans-serif;
+      cursor: pointer;
+      user-select: none;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    #gameWrapper {
+      position: relative;
+      width: 900px;
+      height: 500px;
+      margin: 2rem auto 0;
+    }
+
+    #gameCanvas {
+      display: block;
+      background: #2a2f38;
+      box-shadow: 0 0 20px #ffcc00;
+      border-radius: 12px;
+      border: 3px solid #3c1361;
+      cursor: crosshair;
+    }
+
+    /* Bow style */
+    #bow {
+      position: absolute;
+      left: 80px;
+      width: 60px;
+      height: 160px;
+      margin-top: 0; /* will be adjusted with JS */
+      z-index: 20;
+      user-select: none;
+      transform-origin: center;
+      pointer-events: none;
+    }
+
+    /* Simplified wooden bow with gradient */
+    #bow .arc {
+      position: relative;
+      width: 20px;
+      height: 160px;
+      margin: auto;
+      border-radius: 40px / 160px;
+      background: linear-gradient(to bottom, #7a4f24, #b37333);
+      box-shadow: inset 3px 5px 15px #4a2e11;
+    }
+
+    #bow .string {
+      position: absolute;
+      top: 0;
+      left: 8px;
+      width: 4px;
+      height: 160px;
+      background: linear-gradient(90deg, #e6d8ae, #a79868);
+      box-shadow: 0 0 3px #ffcc00;
+      transform-origin: center;
+      transition: transform 0.1s ease-out;
+    }
+
+    #scoreBoard {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-top: 10px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #ffcc00;
+      user-select: none;
+      min-height: 2rem;
+      width: 900px;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+ <body>
+  <header>
+    <h1 onclick="window.location.href='home.html'">GameHub</h1>
+    <nav>
+      <ul>
+        <li onclick="window.location.href='home.html'">Home</li>
+        <li onclick="window.location.href='Shoot.html'">Shooting Games</li>
+      </ul>
+    </nav>
+  </header>
+
+  <div id="gameWrapper">
+    <canvas id="gameCanvas" width="900" height="500"></canvas>
+    <div id="bow">
+      <div class="arc"></div>
+      <div class="string"></div>
+    </div>
+  </div>
+
+  <div id="scoreBoard">Score: 0</div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameWrapper = document.getElementById('gameWrapper');
+    const bow = document.getElementById('bow');
+    const bowString = bow.querySelector('.string');
+    const scoreBoard = document.getElementById('scoreBoard');
+
+    let score = 0;
+
+    const bowXRelative = 80; // Horizontal position relative to container
+    let bowYRelative = gameWrapper.clientHeight / 2; // Vertical center in container
+
+    // Arrow class represents each arrow in flight
+    class Arrow {
+      constructor(x, y, angle) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = 12;
+        this.length = 50;
+        this.isActive = true;
+      }
+      update() {
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        // Deactivate if out of canvas bounds
+        if (this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+          this.isActive = false;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+        ctx.strokeStyle = '#ffcc00';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(this.length, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        ctx.moveTo(this.length, 0);
+        ctx.lineTo(this.length - 10, -5);
+        ctx.lineTo(this.length - 10, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#b37333';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(5, 0);
+        ctx.lineTo(0, -5);
+        ctx.moveTo(10, 0);
+        ctx.lineTo(0, 5);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    // Target class moves horizontally on right side
+    class Target {
+      constructor(x, y, radius = 25) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.speed = 2 + Math.random() * 1.5;
+        this.direction = Math.random() < 0.5 ? 1 : -1;
+      }
+      update() {
+        this.x += this.speed * this.direction;
+        if (this.x < canvas.width * 0.6 || this.x > canvas.width - this.radius) {
+          this.direction *= -1;
+        }
+      }
+      draw() {
+        const rings = 3;
+        for (let i = rings; i > 0; i--) {
+          ctx.beginPath();
+          ctx.fillStyle = i % 2 === 0 ? '#ffcc00' : '#3c1361';
+          ctx.shadowColor = '#ffcc00';
+          ctx.shadowBlur = 10;
+          ctx.lineWidth = 2;
+          ctx.arc(this.x, this.y, this.radius * i / rings, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+        ctx.beginPath();
+        ctx.fillStyle = '#b37333';
+        ctx.arc(this.x, this.y, this.radius / 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Game state
+    const arrows = [];
+    const targets = [];
+
+    function spawnTargets() {
+      targets.length = 0;
+      const startX = canvas.width - 60;
+      for (let i = 0; i < 3; i++) {
+        const y = 100 + i * 130;
+        targets.push(new Target(startX, y));
+      }
+    }
+
+    spawnTargets();
+
+    // Update bow angle and position relative to container
+    function updateBowAngle(mouseX, mouseY) {
+      const rect = gameWrapper.getBoundingClientRect();
+      const dx = mouseX - rect.left - bowXRelative;
+      const dy = mouseY - rect.top - bowYRelative;
+      const angle = Math.atan2(dy, dx);
+
+      bow.style.left = bowXRelative + 'px';
+      bow.style.top = bowYRelative + 'px';
+      bow.style.transform = `translate(-50%, -50%) rotate(${angle}rad)`;
+      bowString.style.transform = `rotate(${angle}rad)`;
+
+      return angle;
+    }
+
+    // Mouse move triggers bow aiming
+    canvas.addEventListener('mousemove', (e) => {
+      updateBowAngle(e.clientX, e.clientY);
+    });
+
+    // Shoot arrow on canvas click
+    canvas.addEventListener('click', (e) => {
+      const rect = gameWrapper.getBoundingClientRect();
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const angle = updateBowAngle(mouseX, mouseY);
+      const arrow = new Arrow(bowXRelative + 20 * Math.cos(angle), bowYRelative + 20 * Math.sin(angle), angle);
+      arrows.push(arrow);
+    });
+
+    // Check collisions of arrows and targets
+    function checkHits() {
+      arrows.forEach(arrow => {
+        targets.forEach(target => {
+          const dx = arrow.x - target.x;
+          const dy = arrow.y - target.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < target.radius && arrow.isActive) {
+            score++;
+            scoreBoard.textContent = `Score: ${score}`;
+            target.x = canvas.width - 60;
+            target.y = 100 + Math.random() * (canvas.height - 200);
+            arrow.isActive = false;
+          }
+        });
+      });
+    }
+
+    // Main game loop
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      targets.forEach(target => {
+        target.update();
+        target.draw();
+      });
+
+      for (let i = arrows.length - 1; i >= 0; i--) {
+        const arrow = arrows[i];
+        if (!arrow.isActive) {
+          arrows.splice(i, 1);
+          continue;
+        }
+        arrow.update();
+        arrow.draw();
+      }
+
+      checkHits();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize bow vertical position
+    function init() {
+      bowYRelative = gameWrapper.clientHeight / 2;
+      bow.style.top = bowYRelative + 'px';
+      bow.style.left = bowXRelative + 'px';
+    }
+
+    window.addEventListener('resize', () => {
+      init(); // Recenter bow on resize
+    });
+
+    init();
+    gameLoop();
+  </script>
+</body>
+</html>
